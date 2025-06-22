@@ -48,7 +48,7 @@ export default function PrintPreviewPage() {
     return notFound();
   }
 
-  const publicUrl = `${window.location.origin}/lote/${lote.id}`;
+  const publicUrlBase = `${window.location.origin}/kit/${lote.id}`;
 
   return (
     <>
@@ -64,17 +64,21 @@ export default function PrintPreviewPage() {
           </div>
       </div>
       <div id="print-area" className="p-4 grid grid-cols-2 md:grid-cols-3 gap-2 break-after-page">
-        {Array.from({ length: lote.unidades_producidas }).map((_, i) => (
-          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-2 w-full" style={{backgroundColor: '#F5F5DC'}}>
-            <QrCode value={publicUrl} size={120} />
-            <div className='mt-2 space-y-0.5'>
-                <p className="text-lg font-bold leading-tight">{lote.productos?.nombre}</p>
-                <p className="text-sm leading-tight">Lote: {lote.id.substring(0, 8)}</p>
-                <p className="text-sm leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
+        {Array.from({ length: lote.unidades_producidas }).map((_, i) => {
+          const unitIndex = i + 1;
+          const publicUrl = `${publicUrlBase}/${unitIndex}`;
+          return (
+            <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-2 w-full" style={{backgroundColor: '#F5F5DC'}}>
+              <QrCode value={publicUrl} size={120} />
+              <div className='mt-2 space-y-0.5'>
+                  <p className="text-lg font-bold leading-tight">{lote.productos?.nombre}</p>
+                  <p className="text-sm leading-tight">Lote: {lote.id.substring(0, 8)} / Unidad: {unitIndex}</p>
+                  <p className="text-sm leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
+              </div>
+              <p className="text-xs mt-1 font-bold" style={{ color: '#8FBC8F' }}>FungiGrow</p>
             </div>
-            <p className="text-xs mt-1 font-bold" style={{ color: '#8FBC8F' }}>FungiGrow</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );

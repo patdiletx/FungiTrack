@@ -25,6 +25,7 @@ interface CareProgressPanelProps {
     onSettingsChange: (settings: NotificationSettings) => void;
     myKits: Kit[];
     currentKitId: string;
+    currentUnitId: number;
     coordinates: Coordinates | null;
     onCoordinatesChange: (coords: Coordinates) => void;
 }
@@ -38,6 +39,7 @@ export function CareProgressPanel({
     onSettingsChange,
     myKits,
     currentKitId,
+    currentUnitId,
     coordinates,
     onCoordinatesChange
 }: CareProgressPanelProps) {
@@ -190,17 +192,20 @@ export function CareProgressPanel({
                                 Mi Red de Cultivos
                             </h3>
                             <div className="space-y-2">
-                                {myKits.length > 0 && myKits.map(kit => (
-                                    <Link key={kit.id} href={`/lote/${kit.id}`} passHref>
-                                        <Button
-                                            variant={kit.id === currentKitId ? "secondary" : "ghost"}
-                                            className="w-full justify-start text-left h-auto py-2"
-                                            disabled={kit.id === currentKitId}
-                                        >
-                                            {kit.name}
-                                        </Button>
-                                    </Link>
-                                ))}
+                                {myKits.length > 0 && myKits.map(kit => {
+                                    const isCurrent = kit.id === currentKitId && kit.unit === currentUnitId;
+                                    return (
+                                        <Link key={`${kit.id}-${kit.unit}`} href={`/kit/${kit.id}/${kit.unit}`} passHref>
+                                            <Button
+                                                variant={isCurrent ? "secondary" : "ghost"}
+                                                className="w-full justify-start text-left h-auto py-2"
+                                                disabled={isCurrent}
+                                            >
+                                                {kit.name} - Unidad #{kit.unit}
+                                            </Button>
+                                        </Link>
+                                    )
+                                })}
                                 <Link href="/scan" passHref>
                                      <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent hover:bg-white/10">
                                         <Plus className="mr-2 h-4 w-4" /> Añadir otro Cultivo

@@ -49,7 +49,8 @@ const getDynamicStatus = (lote: Lote): string => {
 
 export default function MycoSimbiontePage() {
   const params = useParams();
-  const id = params.id as string;
+  const loteId = params.lote_id as string;
+  const unitId = parseInt(params.unit_id as string, 10);
   const { toast } = useToast();
 
   const [lote, setLote] = useState<Lote | null>(null);
@@ -73,7 +74,7 @@ export default function MycoSimbiontePage() {
 
   // This is the core function for USER-INITIATED interactions with the AI
   const handleAiInteraction = useCallback(async (input: MycoMindInput) => {
-    if (!id) return;
+    if (!loteId || !unitId) return;
     setMycoState('thinking');
     try {
         const aiResponse = await mycoMind(input);
@@ -81,7 +82,7 @@ export default function MycoSimbiontePage() {
             throw new Error("Myco-Mind AI returned a null or undefined response.");
         }
         
-        await updateKitSettingsAction(id, { last_ai_response: aiResponse });
+        await updateKitSettingsAction(loteId, unitId, { last_ai_response: aiResponse });
 
         const { response, mood, weather: weatherData } = aiResponse;
         setMycoMood(mood);
@@ -97,14 +98,14 @@ export default function MycoSimbiontePage() {
     } finally {
         setMycoState('idle');
     }
-  }, [id]);
+  }, [loteId, unitId]);
 
 
   const onPhotoUpload = async (photo: PhotoEntry) => {
     const newHistory = [...photoHistory, photo];
     setPhotoHistory(newHistory);
     try {
-        await updateKitSettingsAction(id, { photo_history: newHistory });
+        await updateKitSettingsAction(loteId, unitId, { photo_history: newHistory });
     } catch(e) {
         console.error("Failed to save photo history", e);
         toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudo guardar la foto en el servidor.'});
@@ -114,7 +115,7 @@ export default function MycoSimbiontePage() {
   const onSettingsChange = async (settings: NotificationSettings) => {
     setNotificationSettings(settings);
     try {
-        await updateKitSettingsAction(id, { notification_settings: settings });
+        await updateKitSettingsAction(loteId, unitId, { notification_settings: settings });
         if(settings.enabled) {
             toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
         }
@@ -128,7 +129,7 @@ export default function MycoSimbiontePage() {
     setCoordinates(coords);
     
     try {
-        await updateKitSettingsAction(id, { coordinates: coords });
+        await updateKitSettingsAction(loteId, unitId, { coordinates: coords });
         toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local para darte consejos.' });
     } catch(e) {
         console.error("Failed to save coordinates", e);
@@ -144,13 +145,14 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: getDynamicStatus(lote),
+              unitIndex: unitId,
               incidents: undefined,
               latitude: coords.latitude,
               longitude: coords.longitude,
             }
         });
     }
-  }, [id, lote, handleAiInteraction]);
+  }, [loteId, unitId, lote, handleAiInteraction]);
 
   // Speech Recognition Setup
   useEffect(() => {
@@ -184,6 +186,7 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: dynamicStatus,
+              unitIndex: unitId,
               incidents: undefined,
               latitude: coordinates?.latitude,
               longitude: coordinates?.longitude,
@@ -195,28 +198,28 @@ export default function MycoSimbiontePage() {
         toast({ variant: "destructive", title: "Error de voz", description: event.error });
     }
     recognitionRef.current = recognition;
-  }, [handleAiInteraction, toast, lote, coordinates, dynamicStatus]);
+  }, [handleAiInteraction, toast, lote, coordinates, dynamicStatus, unitId]);
 
   // Single, robust initialization effect
   useEffect(() => {
-    if (!id) return;
+    if (!loteId || !unitId) return;
     let isMounted = true;
 
     async function initializePage() {
         setLoading(true);
         setMycoState('thinking');
 
-        // Step 1: Fetch all data
-        const loteData = await getLoteByIdAction(id);
+        // Step 1: Fetch all data for this specific unit
+        const loteData = await getLoteByIdAction(loteId, unitId);
 
         if (!isMounted) return;
         if (!loteData || !loteData.productos) {
             notFound();
             return;
         }
-
+        
         // Step 2: Populate base state
-        const settings = loteData.kit_settings?.[0];
+        const settings = loteData.kit_settings?.[0]; // We fetch only one setting
         const coords = settings?.coordinates || null;
         const lastResponse = settings?.last_ai_response || null;
 
@@ -228,8 +231,9 @@ export default function MycoSimbiontePage() {
         try {
             const storedKitsRaw = localStorage.getItem('fungi-my-kits');
             let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
-            if (!kits.some(k => k.id === loteData.id)) {
-                kits.push({ id: loteData.id, name: loteData.productos.nombre });
+            // Check if this specific unit is already in the list
+            if (!kits.some(k => k.id === loteData.id && k.unit === unitId)) {
+                kits.push({ id: loteData.id, unit: unitId, name: loteData.productos.nombre });
                 localStorage.setItem('fungi-my-kits', JSON.stringify(kits));
             }
             if (isMounted) setMyKits(kits);
@@ -249,6 +253,7 @@ export default function MycoSimbiontePage() {
                         productName: loteData.productos!.nombre,
                         ageInDays: getAgeInDays(loteData.created_at),
                         status: getDynamicStatus(loteData),
+                        unitIndex: unitId,
                         incidents: undefined, 
                         latitude: coords?.latitude,
                         longitude: coords?.longitude,
@@ -257,7 +262,7 @@ export default function MycoSimbiontePage() {
                 const aiResponse = await mycoMind(mycoMindInput);
                 if (!aiResponse) throw new Error("AI returned null response.");
 
-                await updateKitSettingsAction(id, { last_ai_response: aiResponse });
+                await updateKitSettingsAction(loteId, unitId, { last_ai_response: aiResponse });
                 
                 // Step 4b: Update the UI with the new AI response
                 if(isMounted) {
@@ -295,7 +300,7 @@ export default function MycoSimbiontePage() {
         isMounted = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [loteId, unitId]);
 
 
   // Handles scheduling and firing notifications
@@ -309,18 +314,19 @@ export default function MycoSimbiontePage() {
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
       const { watering, aeration } = notificationSettings;
+      const uniqueTag = `${loteId}-${unitId}`;
 
       if (watering.enabled && watering.time === currentTime) {
         new Notification('💧 Recordatorio de Riego', {
           body: `¡Es hora de regar tu ${lote?.productos?.nombre || 'cultivo'}! La hidratación es clave.`,
-          tag: `fungi-watering-${id}`, 
+          tag: `fungi-watering-${uniqueTag}`, 
         });
       }
 
       if (aeration.enabled && aeration.times.includes(currentTime)) {
          new Notification('🌬️ Recordatorio de Ventilación', {
           body: `¡Es hora de ventilar tu ${lote?.productos?.nombre || 'cultivo'}! Un poco de aire fresco le vendrá genial.`,
-          tag: `fungi-aeration-${id}-${currentTime}`,
+          tag: `fungi-aeration-${uniqueTag}-${currentTime}`,
         });
       }
     };
@@ -329,7 +335,7 @@ export default function MycoSimbiontePage() {
 
     return () => clearInterval(intervalId);
 
-  }, [notificationSettings, lote, id]);
+  }, [notificationSettings, lote, loteId, unitId]);
 
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
@@ -354,7 +360,7 @@ export default function MycoSimbiontePage() {
           age={lote ? getAgeInDays(lote.created_at) : 0}
           mood={mycoMood}
           status={dynamicStatus}
-          productName={lote?.productos?.nombre || 'Kit de Cultivo'}
+          productName={lote ? `${lote.productos?.nombre} #${unitId}` : 'Kit de Cultivo'}
           weather={weather}
         />
 
@@ -406,7 +412,8 @@ export default function MycoSimbiontePage() {
             photoHistory={photoHistory}
             notificationSettings={notificationSettings}
             myKits={myKits}
-            currentKitId={id}
+            currentKitId={loteId}
+            currentUnitId={unitId}
             onPhotoUpload={onPhotoUpload}
             onSettingsChange={onSettingsChange}
             coordinates={coordinates}

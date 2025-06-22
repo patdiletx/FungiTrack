@@ -17,6 +17,7 @@ export interface PhotoEntry {
 
 export interface Kit {
   id: string;
+  unit: number;
   name: string;
 }
 
@@ -40,6 +41,7 @@ export interface Coordinates {
 export interface KitSettings {
   id: string;
   lote_id: string;
+  unit_index: number;
   created_at: string;
   coordinates: Coordinates | null;
   notification_settings: NotificationSettings | null;

@@ -119,12 +119,15 @@ export default function PublicScanPage() {
 
         try {
           const url = new URL(code.data);
-          const pathSegments = url.pathname.split('/');
-          const loteId = pathSegments.pop() || pathSegments.pop();
+          const pathSegments = url.pathname.split('/').filter(Boolean); // remove empty strings
 
-          if (pathSegments.includes('lote') && loteId) {
-            toast({ title: 'Kit Reconocido', description: `Iniciando asistente...` });
-            router.push(`/lote/${loteId}`);
+          // Expected format: /kit/[lote_id]/[unit_id]
+          if (pathSegments.length === 3 && pathSegments[0] === 'kit') {
+            const loteId = pathSegments[1];
+            const unitId = pathSegments[2];
+
+            toast({ title: 'Kit Reconocido', description: `Iniciando asistente para la unidad ${unitId}...` });
+            router.push(`/kit/${loteId}/${unitId}`);
             return; // Stop the loop
           } else {
             throw new Error('QR no es válido para esta aplicación.');

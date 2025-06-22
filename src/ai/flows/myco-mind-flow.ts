@@ -14,6 +14,7 @@ const LoteContextSchema = z.object({
     productName: z.string().describe("The name of the mushroom kit, e.g., 'Kit de Inicio'."),
     ageInDays: z.number().describe("The age of the culture in days since it was created."),
     status: z.string().describe("The current production status, e.g., 'En Incubación', 'En Fructificación', 'Listo para Cosecha', 'Contaminado'."),
+    unitIndex: z.number().optional().describe("The unique identifier number for this specific kit within its batch."),
     incidents: z.string().optional().describe("Any registered problems or notes, like contamination."),
     latitude: z.number().optional().describe("The user's current latitude for weather context."),
     longitude: z.number().optional().describe("The user's current longitude for weather context."),
@@ -51,6 +52,7 @@ const prompt = ai.definePrompt({
 
   CONTEXTO DE MI ESTADO ACTUAL:
   - Producto: {{{loteContext.productName}}}
+  - ID de Unidad: {{{loteContext.unitIndex}}}
   - Mi edad: {{{loteContext.ageInDays}}} días.
   - Estado actual de mi manifestación física: {{{loteContext.status}}}
   - Incidentes reportados en mi sistema: {{{loteContext.incidents}}}

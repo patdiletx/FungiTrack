@@ -39,7 +39,7 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 
 // --- LOTES ---
 
-export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
+export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise<Lote | null> => {
    const supabase = createClient();
 
    // Step 1: Fetch the main lote data and its related product
@@ -59,10 +59,16 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
   }
 
   // Step 2: Fetch the kit_settings for that lote separately
-  const { data: settingsData, error: settingsError } = await supabase
+  let settingsQuery = supabase
     .from('kit_settings')
     .select('*')
     .eq('lote_id', id);
+
+  if (unitIndex) {
+    settingsQuery = settingsQuery.eq('unit_index', unitIndex);
+  }
+
+  const { data: settingsData, error: settingsError } = await settingsQuery;
 
   if (settingsError) {
     // Log the error but don't fail the whole request.
@@ -222,14 +228,14 @@ export const createLoteSustrato = async (data: Omit<LoteSustrato, 'id' | 'create
 
 // --- KIT SETTINGS ---
 
-export const updateKitSettingsAction = async (loteId: string, settings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'>>): Promise<KitSettings | null> => {
+export const updateKitSettingsAction = async (loteId: string, unitIndex: number, settings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'|'unit_index'>>): Promise<KitSettings | null> => {
     const supabase = createClient();
     
     // Use upsert to create or update settings for a kit.
-    // `onConflict: 'lote_id'` tells Supabase to find the row with the matching `lote_id` and update it.
+    // onConflict specifies the column(s) to check for a conflict.
     const { data, error } = await supabase
         .from('kit_settings')
-        .upsert({ lote_id: loteId, ...settings }, { onConflict: 'lote_id' })
+        .upsert({ lote_id: loteId, unit_index: unitIndex, ...settings }, { onConflict: 'lote_id,unit_index' })
         .select()
         .single();
         
@@ -239,7 +245,9 @@ export const updateKitSettingsAction = async (loteId: string, settings: Partial<
     }
     
     // Revalidate the public kit page so changes are reflected
-    revalidatePath(`/lote/${loteId}`);
+    revalidatePath(`/kit/${loteId}/${unitIndex}`);
+    // Revalidate the producer's lot detail page
+    revalidatePath(`/panel/lote/${loteId}`);
 
     return data;
 }
