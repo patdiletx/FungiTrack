@@ -11,6 +11,7 @@ import { BatchAssistant } from "@/components/panel/BatchAssistant";
 import { ContaminationChecker } from "@/components/panel/ContaminationChecker";
 import { DeleteBatchButton } from "@/components/panel/DeleteBatchButton";
 import { ClientFormattedDate } from "@/components/ClientFormattedDate";
+import { UserActivityCard } from "@/components/panel/UserActivityCard";
 
 type Props = {
   params: { id: string };
@@ -36,6 +37,8 @@ export default async function LoteDetailPage({ params }: Props) {
             return 'outline';
     }
   };
+
+  const kitSettings = lote.kit_settings?.[0];
 
   return (
     <div className="space-y-6">
@@ -117,6 +120,8 @@ export default async function LoteDetailPage({ params }: Props) {
               </CardContent>
             </Card>
           )}
+
+          {kitSettings && <UserActivityCard settings={kitSettings} />}
         </div>
         
         <div className="md:col-span-1 space-y-6">

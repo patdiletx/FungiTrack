@@ -1,11 +1,11 @@
 'use client';
 
-import { getLoteByIdAction } from '@/lib/actions';
+import { getLoteByIdAction, updateKitSettingsAction } from '@/lib/actions';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Mic, Loader2, BookHeart } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import type { Lote } from '@/lib/types';
+import type { Lote, PhotoEntry, Kit, NotificationSettings, Coordinates, KitSettings } from '@/lib/types';
 import { mycoMind, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -13,32 +13,6 @@ import { Hud } from '@/components/Simbionte/Hud';
 import { NucleoNeural } from '@/components/Simbionte/NucleoNeural';
 import { CareProgressPanel } from '@/components/Simbionte/CareProgressPanel';
 
-export type PhotoEntry = {
-    url: string;
-    date: string;
-}
-
-export type Kit = {
-    id: string;
-    name: string;
-}
-
-export type NotificationSettings = {
-    enabled: boolean;
-    watering: {
-        enabled: boolean;
-        time: string; // 'HH:mm'
-    };
-    aeration: {
-        enabled: boolean;
-        times: string[]; // ['HH:mm', 'HH:mm', ...]
-    };
-}
-
-export type Coordinates = {
-    latitude: number;
-    longitude: number;
-};
 
 type MycoState = 'idle' | 'listening' | 'thinking';
 type DisplayMessage = {
@@ -84,17 +58,18 @@ export default function MycoSimbiontePage() {
 
   const [lote, setLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
-  const [localStorageLoaded, setLocalStorageLoaded] = useState(false);
+  
   const [mycoState, setMycoState] = useState<MycoState>('idle');
   const [mycoMood, setMycoMood] = useState<MycoMindOutput['mood']>('Enfoque');
   
   const [photoHistory, setPhotoHistory] = useState<PhotoEntry[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  
   const [isCarePanelOpen, setIsCarePanelOpen] = useState(false);
   const [myKits, setMyKits] = useState<Kit[]>([]);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
-  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const recognitionRef = useRef<any>(null);
@@ -102,57 +77,16 @@ export default function MycoSimbiontePage() {
   
   const dynamicStatus = lote ? getDynamicStatus(lote) : 'Cargando...';
 
-
-  // Load data from localStorage
-  useEffect(() => {
-    if (!id) return;
-    try {
-      const storedPhotos = localStorage.getItem(`fungi-photos-${id}`);
-      if (storedPhotos) {
-        setPhotoHistory(JSON.parse(storedPhotos));
+  // --- Data Persistence ---
+  const updateSettings = async (newSettings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'>>) => {
+      if (!id) return;
+      try {
+          await updateKitSettingsAction(id, newSettings);
+      } catch (e) {
+          console.error("Failed to save settings to DB", e);
+          toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudieron guardar los cambios en el servidor.'});
       }
-
-      const storedNotifications = localStorage.getItem(`fungi-notifications-${id}`);
-      if (storedNotifications) {
-        const parsedSettings = JSON.parse(storedNotifications);
-        const mergedSettings: NotificationSettings = {
-            ...defaultNotificationSettings,
-            ...parsedSettings,
-            watering: {
-                ...defaultNotificationSettings.watering,
-                ...(parsedSettings.watering || {}),
-            },
-            aeration: {
-                ...defaultNotificationSettings.aeration,
-                ...(parsedSettings.aeration || {}),
-            },
-        };
-        setNotificationSettings(mergedSettings);
-      } else {
-        setNotificationSettings(defaultNotificationSettings);
-      }
-
-      const storedLocation = localStorage.getItem(`fungi-location-${id}`);
-      if (storedLocation) {
-        setCoordinates(JSON.parse(storedLocation));
-      }
-      
-      const storedResponse = localStorage.getItem(`fungi-last-response-${id}`);
-      if (storedResponse) {
-          const parsed: MycoMindOutput = JSON.parse(storedResponse);
-          setMycoMood(parsed.mood);
-          if (parsed.weather) {
-              setWeather(parsed.weather);
-          }
-          setDisplayedMessage({ id: Date.now(), text: parsed.response });
-      }
-
-    } catch (e) {
-      console.error("Failed to load data from localStorage", e);
-    } finally {
-        setLocalStorageLoaded(true);
-    }
-  }, [id]);
+  };
 
   const callMycoMind = useCallback(async (input: any) => {
       if (!lote) return;
@@ -164,7 +98,7 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: dynamicStatus,
-              incidents: undefined, // User-facing AI should not know about producer-side incidents
+              incidents: undefined, 
               latitude: coordinates?.latitude,
               longitude: coordinates?.longitude,
             }
@@ -174,7 +108,7 @@ export default function MycoSimbiontePage() {
             throw new Error("Myco-Mind AI returned a null or undefined response.");
         }
         
-        localStorage.setItem(`fungi-last-response-${id}`, JSON.stringify(aiResponse));
+        updateSettings({ last_ai_response: aiResponse });
 
         const { response, mood, weather: weatherData } = aiResponse;
         
@@ -198,42 +132,26 @@ export default function MycoSimbiontePage() {
       }
   }, [lote, coordinates, dynamicStatus, id]);
 
-  const savePhotoHistory = useCallback((photos: PhotoEntry[]) => {
-    if (!id) return;
-    try {
-      localStorage.setItem(`fungi-photos-${id}`, JSON.stringify(photos));
-      setPhotoHistory(photos);
-    } catch (e) {
-      console.error("Failed to save photo history to localStorage", e);
-      toast({ variant: 'destructive', title: 'Error al guardar foto', description: 'No se pudo guardar la foto en el almacenamiento local.'});
-    }
-  }, [id, toast]);
-
-  const saveNotificationSettings = useCallback((settings: NotificationSettings) => {
-      if (!id) return;
-      try {
-          localStorage.setItem(`fungi-notifications-${id}`, JSON.stringify(settings));
-          setNotificationSettings(settings);
-          if(settings.enabled) {
-            toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
-          }
-      } catch (e) {
-        console.error("Failed to save notification settings", e);
-      }
-  }, [id, toast]);
+  const onPhotoUpload = (photo: PhotoEntry) => {
+    const newHistory = [...photoHistory, photo];
+    setPhotoHistory(newHistory);
+    updateSettings({ photo_history: newHistory });
+  };
   
-  const saveCoordinates = useCallback((coords: Coordinates) => {
-      if (!id) return;
-      try {
-          localStorage.setItem(`fungi-location-${id}`, JSON.stringify(coords));
-          setCoordinates(coords);
-          toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima de esta ubicación.' });
-          callMycoMind({ interactionType: 'QUERY', userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' });
-      } catch (e) {
-          console.error("Failed to save coordinates to localStorage", e);
-          toast({ variant: 'destructive', title: 'Error al guardar ubicación'});
-      }
-  }, [id, toast, callMycoMind]);
+  const onSettingsChange = (settings: NotificationSettings) => {
+    setNotificationSettings(settings);
+    updateSettings({ notification_settings: settings });
+     if(settings.enabled) {
+        toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
+     }
+  };
+  
+  const onCoordinatesChange = (coords: Coordinates) => {
+    setCoordinates(coords);
+    updateSettings({ coordinates: coords });
+    toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local.' });
+    callMycoMind({ interactionType: 'QUERY', userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' });
+  };
 
   // Speech Recognition Setup
   useEffect(() => {
@@ -283,6 +201,19 @@ export default function MycoSimbiontePage() {
       }
       setLote(loteData);
       
+      // Initialize state from DB or defaults
+      const settings = loteData.kit_settings?.[0];
+      setPhotoHistory(settings?.photo_history || []);
+      setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
+      setCoordinates(settings?.coordinates || null);
+
+      if (settings?.last_ai_response) {
+          const { response, mood, weather: weatherData } = settings.last_ai_response;
+          setMycoMood(mood);
+          if (weatherData) setWeather(weatherData);
+          setDisplayedMessage({ id: Date.now(), text: response });
+      }
+
       try {
         const storedKitsRaw = localStorage.getItem('fungi-my-kits');
         let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
@@ -300,17 +231,17 @@ export default function MycoSimbiontePage() {
     fetchData();
   }, [id]);
 
-  // Initial MycoMind call, fires after all data is ready
+  // Initial MycoMind call
   useEffect(() => {
-    if (!lote || loading || !localStorageLoaded || initialCallMade.current) {
+    if (loading || initialCallMade.current) {
         return;
     }
-
-    // A call is needed if it's the very first time (no cached message)
-    const needsCallForInit = !displayedMessage;
     
-    // Also call if we have coordinates but the cached response is stale (lacks weather data).
-    // This ensures that after a user sets their location and reloads, we fetch the weather.
+    // Check if lote and its settings are loaded
+    const settingsLoaded = !!lote;
+    if (!settingsLoaded) return;
+    
+    const needsCallForInit = !displayedMessage;
     const needsCallForStaleWeather = coordinates && !weather;
 
     if (needsCallForInit || needsCallForStaleWeather) {
@@ -319,7 +250,7 @@ export default function MycoSimbiontePage() {
         interactionType: 'INITIALIZE', 
       });
     }
-  }, [lote, loading, localStorageLoaded, callMycoMind, displayedMessage, coordinates, weather]);
+  }, [lote, loading, callMycoMind, displayedMessage, coordinates, weather]);
 
   // Handles scheduling and firing notifications
   useEffect(() => {
@@ -364,7 +295,7 @@ export default function MycoSimbiontePage() {
     }
   };
 
-  if (loading || !localStorageLoaded) {
+  if (loading) {
     return <div className="flex h-screen w-full items-center justify-center bg-[#201A30]"><Loader2 className="h-10 w-10 animate-spin text-[#A080E0]" /></div>;
   }
 
@@ -425,13 +356,10 @@ export default function MycoSimbiontePage() {
             notificationSettings={notificationSettings}
             myKits={myKits}
             currentKitId={id}
-            onPhotoUpload={(photo) => {
-                const newHistory = [...photoHistory, photo];
-                savePhotoHistory(newHistory);
-            }}
-            onSettingsChange={saveNotificationSettings}
+            onPhotoUpload={onPhotoUpload}
+            onSettingsChange={onSettingsChange}
             coordinates={coordinates}
-            onCoordinatesChange={saveCoordinates}
+            onCoordinatesChange={onCoordinatesChange}
        />
     </main>
   );

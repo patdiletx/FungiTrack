@@ -1,3 +1,5 @@
+import type { MycoMindOutput } from '@/ai/flows/myco-mind-flow';
+
 export interface Producto {
   id: string;
   created_at: string;
@@ -7,6 +9,44 @@ export interface Producto {
   costo_variable_clp: number;
   spawn_rate_porcentaje?: number | null;
 }
+
+export interface PhotoEntry {
+  url: string;
+  date: string;
+}
+
+export interface Kit {
+  id: string;
+  name: string;
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  watering: {
+    enabled: boolean;
+    time: string; // 'HH:mm'
+  };
+  aeration: {
+    enabled: boolean;
+    times: string[]; // ['HH:mm', 'HH:mm', ...]
+  };
+}
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+export interface KitSettings {
+  id: string;
+  lote_id: string;
+  created_at: string;
+  coordinates: Coordinates | null;
+  notification_settings: NotificationSettings | null;
+  photo_history: PhotoEntry[] | null;
+  last_ai_response: MycoMindOutput | null;
+}
+
 
 export interface Lote {
   id: string;
@@ -19,6 +59,7 @@ export interface Lote {
   incidencias?: string | null;
   id_operador: string;
   productos?: Producto; // For joined queries
+  kit_settings?: KitSettings[];
 }
 
 export interface Ingrediente {

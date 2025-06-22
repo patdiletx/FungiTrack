@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Bell, Camera, Image as ImageIcon, Plus, Trash2, Network, Globe, Save, MapPin } from "lucide-react";
-import { type PhotoEntry, type NotificationSettings, type Kit, type Coordinates } from "@/app/lote/[id]/page";
+import type { PhotoEntry, NotificationSettings, Kit, Coordinates } from "@/lib/types";
 import { ScrollArea } from "../ui/scroll-area";
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -109,7 +109,7 @@ export function CareProgressPanel({
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            if (file.size > 2 * 1024 * 1024) { // 2MB limit for localStorage friendliness
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit for Data URI
                 toast({
                     variant: "destructive",
                     title: "Imagen demasiado grande",

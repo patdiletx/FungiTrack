@@ -1,6 +1,6 @@
 'use server';
 
-import type { Lote, Producto, Formulacion } from './types';
+import type { Lote, Producto, Formulacion, KitSettings } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from './supabase/server';
 import { revalidatePath } from 'next/cache';
@@ -43,7 +43,7 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
    const supabase = createClient();
    const { data, error } = await supabase
     .from('lotes')
-    .select('*, productos(*)')
+    .select('*, productos(*), kit_settings(*)')
     .eq('id', id)
     .single();
   
@@ -54,7 +54,7 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
   return data;
 }
 
-export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias'>): Promise<Lote> => {
+export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings'>): Promise<Lote> => {
   const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
@@ -138,3 +138,27 @@ export const updateFormulacion = async (id: string, data: Partial<Omit<Formulaci
   revalidatePath('/panel/formulaciones');
   return updatedFormulacion;
 };
+
+// --- KIT SETTINGS ---
+
+export const updateKitSettingsAction = async (loteId: string, settings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'>>): Promise<KitSettings | null> => {
+    const supabase = createClient();
+    
+    // Use upsert to create or update settings for a kit.
+    // `onConflict: 'lote_id'` tells Supabase to find the row with the matching `lote_id` and update it.
+    const { data, error } = await supabase
+        .from('kit_settings')
+        .upsert({ lote_id: loteId, ...settings }, { onConflict: 'lote_id' })
+        .select()
+        .single();
+        
+    if (error) {
+        console.error('Failed to update kit settings:', error);
+        throw new Error('Failed to update kit settings: ' + error.message);
+    }
+    
+    // Revalidate the public kit page so changes are reflected
+    revalidatePath(`/lote/${loteId}`);
+
+    return data;
+}
