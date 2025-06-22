@@ -2,7 +2,7 @@
 // It can be safely imported into Server Components.
 
 import { createClient } from './supabase/server';
-import type { Lote, Producto, Formulacion } from './types';
+import type { Lote, Producto, Formulacion, KitSettings } from './types';
 
 
 // --- PRODUCTOS ---
@@ -21,16 +21,47 @@ export const getProductos = async (): Promise<Producto[]> => {
 
 export const getLotes = async (): Promise<Lote[]> => {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data: lotes, error: lotesError } = await supabase
     .from('lotes')
     .select('*, productos(*)')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching lotes:', error.message);
+  if (lotesError) {
+    console.error('Error fetching lotes:', lotesError.message);
     return [];
   }
-  return data || [];
+  if (!lotes || lotes.length === 0) {
+    return [];
+  }
+
+  const loteIds = lotes.map(l => l.id);
+  
+  const { data: settings, error: settingsError } = await supabase
+    .from('kit_settings')
+    .select('*')
+    .in('lote_id', loteIds);
+
+  if (settingsError) {
+      console.error('Error fetching kit_settings for lotes:', settingsError.message);
+      // Return lotes without settings if settings fetch fails
+      return lotes.map(l => ({ ...l, kit_settings: [] }));
+  }
+  
+  // Map settings to their respective lotes
+  const settingsMap = new Map<string, KitSettings[]>();
+  for (const setting of settings) {
+      if (!settingsMap.has(setting.lote_id)) {
+          settingsMap.set(setting.lote_id, []);
+      }
+      settingsMap.get(setting.lote_id)!.push(setting);
+  }
+
+  const lotesWithSettings = lotes.map(lote => ({
+      ...lote,
+      kit_settings: settingsMap.get(lote.id) || []
+  }));
+
+  return lotesWithSettings;
 };
 
 export const getLoteById = async (id: string): Promise<Lote | null> => {

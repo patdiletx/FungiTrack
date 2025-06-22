@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BatchTable } from "@/components/panel/BatchTable";
 import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
+import type { BatchSummaryOutput } from "@/ai/flows/batch-summary-flow";
+import { DashboardAiSummary } from "./DashboardAiSummary";
+
 
 const ChartSkeleton = () => (
     <Card>
@@ -28,24 +31,28 @@ const BatchStatusChart = dynamic(() =>
 
 interface DashboardClientProps {
     lotes: Lote[];
+    summary: BatchSummaryOutput | null;
 }
 
-export function DashboardClient({ lotes }: DashboardClientProps) {
+export function DashboardClient({ lotes, summary }: DashboardClientProps) {
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3">
-                <Card>
-                    <CardHeader>
-                    <CardTitle className="font-headline">Lotes Recientes</CardTitle>
-                    <CardDescription className="font-body">Haz clic en un lote para ver sus detalles.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <BatchTable lotes={lotes} />
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="lg:col-span-2">
-                <BatchStatusChart lotes={lotes} />
+        <div className="space-y-6">
+            <DashboardAiSummary summary={summary} />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-3">
+                    <Card>
+                        <CardHeader>
+                        <CardTitle className="font-headline">Lotes Recientes</CardTitle>
+                        <CardDescription className="font-body">Haz clic en un lote para ver sus detalles.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <BatchTable lotes={lotes} />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-2">
+                    <BatchStatusChart lotes={lotes} />
+                </div>
             </div>
         </div>
     )

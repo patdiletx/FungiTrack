@@ -8,3 +8,4 @@ import '@/ai/flows/generate-product-image-flow.ts';
 import '@/ai/flows/myco-mind-flow.ts';
 import '@/ai/flows/text-to-speech-flow.ts';
 import '@/ai/tools/weather-tool.ts';
+import '@/ai/flows/batch-summary-flow.ts';

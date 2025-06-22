@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { DashboardClient } from "@/components/panel/DashboardClient";
+import { summarizeBatches } from "@/ai/flows/batch-summary-flow";
 
 export default async function PanelDashboard() {
   const lotes = await getLotes();
+  const summary = lotes.length > 0 ? await summarizeBatches(lotes) : null;
 
   return (
     <div className="space-y-6">
@@ -26,7 +28,7 @@ export default async function PanelDashboard() {
         </Link>
       </div>
 
-      <DashboardClient lotes={lotes} />
+      <DashboardClient lotes={lotes} summary={summary} />
     </div>
   );
 }
