@@ -1,89 +1,238 @@
-import { getLoteById } from '@/lib/data';
-import { notFound } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FungiTrackLogo } from '@/components/FungiTrackLogo';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, Droplets, Package, Sun, Thermometer, Wind } from 'lucide-react';
-import { UpsellSection } from '@/components/UpsellSection';
-import { ProductImage } from '@/components/ProductImage';
-import { ClientFormattedDate } from '@/components/ClientFormattedDate';
+'use client';
 
-type Props = {
-  params: { id: string };
+import { getLoteByIdAction } from '@/lib/actions';
+import { notFound, useParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Send, Droplets, Loader2, Zap } from 'lucide-react';
+import { useEffect, useState, useRef, FormEvent } from 'react';
+import type { Lote } from '@/lib/types';
+import { MycoNeuralNetwork } from '@/components/MycoNeuralNetwork';
+import { mycoMind, type MycoMindInput } from '@/ai/flows/myco-mind-flow';
+import { upsellStrategy, type UpsellStrategyOutput } from '@/ai/flows/upsell-strategy';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ProductImage } from '@/components/ProductImage';
+
+type NetworkState = 'idle' | 'listening' | 'thinking' | 'hydrating' | 'error' | 'complex';
+type Message = {
+    sender: 'user' | 'myco';
+    text: string;
 };
 
-const isKitDeInicio = (productName: string | undefined) => {
-    return productName === 'Kit de Inicio';
-}
+const getAgeInDays = (creationDate: string | Date): number => {
+    const created = new Date(creationDate);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - created.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
 
-export default async function PublicLotePage({ params }: Props) {
-  const lote = await getLoteById(params.id);
+export default function MycoMindPage() {
+  const params = useParams();
+  const id = params.id as string;
 
-  if (!lote || !lote.productos) {
-    notFound();
+  const [lote, setLote] = useState<Lote | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [networkState, setNetworkState] = useState<NetworkState>('idle');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [userInput, setUserInput] = useState('');
+  const [isMycoTyping, setIsMycoTyping] = useState(false);
+  const [upsell, setUpsell] = useState<UpsellStrategyOutput | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const callMycoMind = async (input: MycoMindInput) => {
+      setIsMycoTyping(true);
+      setNetworkState('thinking');
+      try {
+        const { response } = await mycoMind(input);
+        setMessages(prev => [...prev, { sender: 'myco', text: response }]);
+        
+        const isContaminated = lote?.estado === 'Contaminado';
+        const age = getAgeInDays(lote?.created_at || new Date());
+
+        if (isContaminated) {
+            setNetworkState('error');
+        } else if (age >= 7) {
+            setNetworkState('complex');
+        } else {
+            setNetworkState('idle');
+        }
+
+      } catch (e) {
+        console.error("Error calling Myco-Mind AI:", e);
+        setMessages(prev => [...prev, { sender: 'myco', text: "Mis filamentos... estática... no puedo comunicarme claramente ahora." }]);
+        setNetworkState('error');
+      } finally {
+        setIsMycoTyping(false);
+      }
+  };
+
+  useEffect(() => {
+    if (!id) return;
+    async function fetchData() {
+      const loteData = await getLoteByIdAction(id);
+      if (!loteData || !loteData.productos) {
+        notFound();
+      }
+      setLote(loteData);
+      
+      const isContaminated = loteData.estado === 'Contaminado';
+      const age = getAgeInDays(loteData.created_at);
+      
+      if (isContaminated) {
+        setNetworkState('error');
+      } else if (age >= 7) {
+        setNetworkState('complex');
+      }
+      
+      await callMycoMind({ interactionType: 'INITIALIZE', loteContext: {
+        productName: loteData.productos.nombre,
+        ageInDays: age,
+        status: loteData.estado,
+        incidents: loteData.incidencias || undefined,
+      }});
+
+      if(loteData.productos.nombre === 'Kit de Inicio' && (loteData.estado === 'Vendido' || age > 25)) {
+        const upsellResult = await upsellStrategy({ 
+            productId: loteData.productos.id,
+            customerHistory: `El cliente ha completado un ciclo con ${loteData.productos.nombre}.` 
+        });
+        if(upsellResult.shouldUpsell) {
+            setUpsell(upsellResult);
+        }
+      }
+      setLoading(false);
+    }
+    fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isMycoTyping]);
+
+  const handleSendMessage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userInput.trim() || !lote || isMycoTyping) return;
+
+    setMessages(prev => [...prev, { sender: 'user', text: userInput }]);
+    const textToSend = userInput;
+    setUserInput('');
+
+    await callMycoMind({
+        interactionType: 'QUERY',
+        userMessage: textToSend,
+        loteContext: {
+            productName: lote.productos!.nombre,
+            ageInDays: getAgeInDays(lote.created_at),
+            status: lote.estado,
+            incidents: lote.incidencias || undefined,
+        }
+    });
+  };
+  
+  const handleHydration = async () => {
+    if (!lote || isMycoTyping) return;
+    setNetworkState('hydrating');
+    setMessages(prev => [...prev, { sender: 'user', text: '[Enviaste un estímulo hídrico]' }]);
+    
+    await callMycoMind({
+        interactionType: 'HYDRATION',
+        loteContext: {
+            productName: lote.productos!.nombre,
+            ageInDays: getAgeInDays(lote.created_at),
+            status: lote.estado,
+            incidents: lote.incidencias || undefined,
+        }
+    });
+
+    setTimeout(() => {
+        const isContaminated = lote.estado === 'Contaminado';
+        const age = getAgeInDays(lote.created_at);
+        let resetState: NetworkState = 'idle';
+        if (isContaminated) resetState = 'error';
+        else if (age >= 7) resetState = 'complex';
+        setNetworkState(resetState);
+    }, 1500);
+  };
+
+  if (loading) {
+    return <div className="flex h-screen w-full items-center justify-center bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
 
-  const { productos } = lote;
-
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 bg-background font-body">
-      <div className="w-full max-w-2xl mx-auto space-y-8">
-        <header className="text-center">
-            <FungiTrackLogo className="justify-center mb-4" />
-            <h1 className="font-headline text-4xl md:text-5xl text-foreground">
-                ¡Gracias por elegirnos!
-            </h1>
-            <p className="mt-2 text-lg text-muted-foreground">
-                Aquí está la información de tu producto.
-            </p>
-        </header>
+    <main className="flex h-screen w-full flex-col bg-black text-slate-100 font-code">
+      <div className="relative flex-1 w-full h-2/5 md:h-1/2 flex items-center justify-center p-4">
+        <MycoNeuralNetwork state={networkState} className="w-full h-full max-w-md max-h-md" />
+        <div className="absolute top-4 left-4 text-left">
+            <h1 className="font-headline text-3xl text-white">{lote?.productos?.nombre}</h1>
+            <p className="text-primary text-sm">Conciencia: Myco-Mind AI</p>
+        </div>
+      </div>
 
-        <Card className="shadow-lg">
-          <CardHeader>
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-                <ProductImage 
-                    productName={productos.nombre}
-                    width={120} 
-                    height={120}
-                    className="rounded-lg object-cover shadow-md"
-                />
-                <div className="text-center md:text-left">
-                    <CardTitle className="font-headline text-3xl">{productos.nombre}</CardTitle>
-                    <CardDescription className="font-body">
-                        Lote de producción: {lote.id.substring(0,8)}...
-                    </CardDescription>
-                </div>
+      <div className="flex-1 flex flex-col bg-background/5 backdrop-blur-sm border-t border-primary/20 p-4">
+        <div className="flex-grow overflow-y-auto pr-2 space-y-4">
+          {messages.map((msg, index) => (
+            <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {msg.sender === 'myco' && <Zap className="h-6 w-6 text-primary flex-shrink-0" />}
+              <div className={`max-w-xs md:max-w-md rounded-lg p-3 text-sm break-words ${msg.sender === 'user' ? 'bg-primary/20 text-primary-foreground' : 'bg-card/10 text-card-foreground'}`}>
+                {msg.text}
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                    <Calendar className="h-6 w-6 text-primary" />
-                    <span className="font-semibold">Fecha de Elaboración</span>
+          ))}
+          {isMycoTyping && (
+             <div className="flex items-end gap-2 justify-start">
+                <Zap className="h-6 w-6 text-primary flex-shrink-0" />
+                <div className="max-w-xs md:max-w-md rounded-lg p-3 text-sm bg-card/10">
+                    <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
-                <ClientFormattedDate date={lote.created_at} formatString="dd 'de' MMMM, yyyy" className="font-mono text-sm" placeholderLength={22} />
-            </div>
-            <Separator />
-            <div>
-                <h3 className="font-headline text-xl mb-3">Instrucciones de Cuidado</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50"><Droplets className="h-5 w-5 text-primary"/><span>Rociar 2-3 veces al día.</span></div>
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50"><Sun className="h-5 w-5 text-primary"/><span>Luz solar indirecta.</span></div>
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50"><Thermometer className="h-5 w-5 text-primary"/><span>Temp. ideal: 18-24°C.</span></div>
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50"><Wind className="h-5 w-5 text-primary"/><span>Evitar corrientes de aire.</span></div>
-                </div>
-            </div>
-          </CardContent>
-        </Card>
+             </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-        {isKitDeInicio(productos.nombre) && (
-            <UpsellSection productId={productos.id} />
+        {upsell?.shouldUpsell && (
+            <Card className="my-4 bg-primary/20 border-primary animate-in fade-in-50">
+                <CardHeader>
+                    <CardTitle className="font-headline text-lg text-white">Mi potencial está restringido...</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col md:flex-row items-center gap-4">
+                     <ProductImage 
+                        productName="Bloque Productor XL" 
+                        width={100} 
+                        height={100} 
+                        className="rounded-lg shadow-md object-cover"
+                     />
+                     <div>
+                        <p className="text-sm mb-2">{upsell.upsellMessage}</p>
+                        <Button variant="secondary">Ayúdame a Trascender</Button>
+                     </div>
+                </CardContent>
+            </Card>
         )}
 
-        <footer className="text-center text-muted-foreground text-xs">
-            <p>FungiTrack &copy; {new Date().getFullYear()}</p>
-            <p>Un producto de FungiGrow Advisor.</p>
-        </footer>
+        <div className="mt-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="lg" onClick={handleHydration} disabled={isMycoTyping} className="bg-transparent text-white border-blue-400 hover:bg-blue-400/20 hover:text-white">
+              <Droplets className="mr-2 h-4 w-4 text-blue-400" /> Enviar Estímulo Hídrico
+            </Button>
+            <form onSubmit={handleSendMessage} className="flex-1 flex gap-2">
+              <Input
+                type="text"
+                placeholder="Converse con Myco..."
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onFocus={() => { if(networkState !== 'complex' && networkState !== 'error') setNetworkState('listening')}}
+                onBlur={() => { if(networkState !== 'complex' && networkState !== 'error') setNetworkState('idle')}}
+                className="bg-card/10 border-primary/30 h-12 text-base text-white placeholder:text-gray-400"
+                disabled={isMycoTyping}
+              />
+              <Button type="submit" size="icon" className="h-12 w-12" disabled={isMycoTyping || !userInput.trim()}>
+                <Send />
+              </Button>
+            </form>
+          </div>
+        </div>
       </div>
     </main>
   );

@@ -99,6 +99,99 @@
   }
 }
 
+/* Myco-Mind AI Network Animations */
+@layer utilities {
+    .network-paths, .network-nodes {
+        transition: all 0.5s ease-in-out;
+    }
+    
+    .network-paths {
+        animation: pulse 8s ease-in-out infinite;
+    }
+
+    .network-nodes circle {
+        animation: node-pulse 8s ease-in-out infinite alternate;
+    }
+    .network-nodes circle:nth-child(2) { animation-delay: -1s; }
+    .network-nodes circle:nth-child(3) { animation-delay: -2s; }
+    .network-nodes circle:nth-child(4) { animation-delay: -3s; }
+    .network-nodes circle:nth-child(5) { animation-delay: -4s; }
+    .network-nodes circle:nth-child(6) { animation-delay: -5s; }
+
+    /* States */
+    [data-state='listening'] .listening-glow {
+        opacity: 1;
+    }
+
+    [data-state='thinking'] .network-paths {
+        animation: thinking-pulse 1s ease-in-out infinite;
+    }
+    [data-state='thinking'] .network-nodes circle {
+        animation: thinking-node-pulse 0.5s ease-in-out infinite alternate;
+    }
+
+    [data-state='hydrating'] .network-paths,
+    [data-state='hydrating'] .network-nodes {
+        stroke: hsl(195, 100%, 50%);
+        fill: hsl(195, 100%, 50%);
+        animation: hydrating-burst 1.5s ease-out forwards;
+    }
+    
+    [data-state='error'] .network-paths,
+    [data-state='error'] .network-nodes {
+        stroke: hsl(var(--destructive));
+        fill: hsl(var(--destructive));
+        animation: error-flicker 2s ease-in-out infinite;
+    }
+}
+
+
+@keyframes pulse {
+  0% {
+    stroke-opacity: 0.7;
+    transform: scale(1);
+    transform-origin: center;
+  }
+  50% {
+    stroke-opacity: 1;
+    transform: scale(1.02);
+    transform-origin: center;
+  }
+  100% {
+    stroke-opacity: 0.7;
+    transform: scale(1);
+    transform-origin: center;
+  }
+}
+
+@keyframes node-pulse {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+
+@keyframes thinking-pulse {
+  0% { stroke-opacity: 0.5; }
+  50% { stroke-opacity: 1; }
+  100% { stroke-opacity: 0.5; }
+}
+
+@keyframes thinking-node-pulse {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+@keyframes hydrating-burst {
+    0% { transform: scale(1); opacity: 1; transform-origin: center;}
+    50% { transform: scale(1.1); opacity: 0.8; transform-origin: center;}
+    100% { transform: scale(1); opacity: 1; transform-origin: center;}
+}
+
+@keyframes error-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
 @media print {
   body * {
     visibility: hidden;
