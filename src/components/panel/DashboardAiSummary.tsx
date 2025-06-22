@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Sparkles, Lightbulb, Bot, ArrowRight, Loader2 } from 'lucide-react';
@@ -18,7 +18,15 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
   const router = useRouter();
   const [isDismissing, setIsDismissing] = useState<string | null>(null);
 
-  if (!summary) {
+  // Use state to manage the summary for optimistic updates
+  const [currentSummary, setCurrentSummary] = useState(summary);
+
+  // Keep state in sync with server-provided props
+  useEffect(() => {
+    setCurrentSummary(summary);
+  }, [summary]);
+
+  if (!currentSummary) {
     return (
        <Card>
             <CardHeader>
@@ -38,11 +46,23 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
   const navigateToLote = async (loteId: string, reason: string) => {
     const alertKey = `${loteId}-${reason}`;
     setIsDismissing(alertKey);
+
+    // Optimistic UI update: remove the alert from the local state immediately
+    if (currentSummary) {
+      setCurrentSummary({
+        ...currentSummary,
+        attentionRequired: currentSummary.attentionRequired.filter(item => !(item.loteId === loteId && item.reason === reason)),
+      });
+    }
+
     try {
+      // Perform the server action in the background
       await dismissLoteAlertAction(loteId, reason);
       router.push(`/panel/lote/${loteId}`);
     } catch (error) {
         console.error("Failed to dismiss alert:", error);
+        // If the server action fails, revert the optimistic update
+        setCurrentSummary(summary);
         setIsDismissing(null);
     }
   };
@@ -57,17 +77,17 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <Bot /> Resumen del Asistente AI
         </CardTitle>
-        <p className="text-muted-foreground">{summary.overallSummary}</p>
+        <p className="text-muted-foreground">{currentSummary.overallSummary}</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {summary.attentionRequired && summary.attentionRequired.length > 0 && (
+        {currentSummary.attentionRequired && currentSummary.attentionRequired.length > 0 && (
           <div>
             <h3 className="mb-2 font-semibold text-lg flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               Requiere Atención
             </h3>
             <div className="space-y-2">
-              {summary.attentionRequired.map((item) => (
+              {currentSummary.attentionRequired.map((item) => (
                 <Alert key={item.loteId + item.reason} variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <div className="flex justify-between items-center w-full">
@@ -94,14 +114,14 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
           </div>
         )}
 
-        {summary.positiveHighlights && summary.positiveHighlights.length > 0 && (
+        {currentSummary.positiveHighlights && currentSummary.positiveHighlights.length > 0 && (
           <div>
             <h3 className="mb-2 font-semibold text-lg flex items-center gap-2 text-chart-2">
                 <Sparkles className="h-5 w-5" />
                 Hitos Positivos
             </h3>
             <div className="space-y-2">
-                {summary.positiveHighlights.map((item) => (
+                {currentSummary.positiveHighlights.map((item) => (
                     <Alert key={item.loteId + item.reason} variant="success">
                         <Sparkles className="h-4 w-4" />
                         <div className="flex justify-between items-center w-full">
@@ -119,14 +139,14 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
           </div>
         )}
 
-        {summary.generalSuggestions && summary.generalSuggestions.length > 0 && (
+        {currentSummary.generalSuggestions && currentSummary.generalSuggestions.length > 0 && (
           <div>
             <h3 className="mb-2 font-semibold text-lg flex items-center gap-2 text-primary">
                 <Lightbulb className="h-5 w-5" />
                 Sugerencias Generales
             </h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-2">
-              {summary.generalSuggestions.map((suggestion, index) => (
+              {currentSummary.generalSuggestions.map((suggestion, index) => (
                 <li key={index}>{suggestion}</li>
               ))}
             </ul>
