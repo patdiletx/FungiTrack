@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Bell, Camera, Image as ImageIcon, Plus, Trash2, Network, Globe, Save } from "lucide-react";
+import { Bell, Camera, Image as ImageIcon, Plus, Trash2, Network, Globe, Save, MapPin } from "lucide-react";
 import { type PhotoEntry, type NotificationSettings, type Kit, type Coordinates } from "@/app/lote/[id]/page";
 import { ScrollArea } from "../ui/scroll-area";
 import Image from 'next/image';
@@ -145,6 +145,33 @@ export function CareProgressPanel({
         onCoordinatesChange({ latitude, longitude });
     };
 
+    const handleUseCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            toast({
+                variant: 'destructive',
+                title: 'Geolocalización no soportada',
+                description: 'Tu navegador no soporta esta función.'
+            });
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setLat(latitude.toString());
+                setLon(longitude.toString());
+                onCoordinatesChange({ latitude, longitude });
+            },
+            (error) => {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error al obtener ubicación',
+                    description: `No se pudo obtener tu ubicación. Error: ${error.message}`
+                });
+            }
+        );
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[90vw] sm:max-w-[400px] flex flex-col">
@@ -189,7 +216,7 @@ export function CareProgressPanel({
                                 <Globe className="h-6 w-6 text-[#70B0F0]" />
                                 Ubicación del Cultivo
                             </h3>
-                            <p className='text-xs text-slate-400 -mt-2'>Proporciona la ubicación para obtener datos climáticos y consejos precisos.</p>
+                            <p className='text-xs text-slate-400 -mt-2'>Usa tu ubicación actual o introduce coordenadas manuales.</p>
                              <div className="space-y-2">
                                 <div>
                                     <Label htmlFor="latitude" className="text-sm">Latitud</Label>
@@ -200,9 +227,14 @@ export function CareProgressPanel({
                                     <Input id="longitude" type="number" placeholder="Ej: -70.6693" value={lon} onChange={(e) => setLon(e.target.value)} className="bg-slate-800/50 border-slate-700"/>
                                 </div>
                              </div>
-                             <Button onClick={handleSaveLocation} className="w-full bg-slate-600 hover:bg-slate-500">
-                                <Save className="mr-2 h-4 w-4" /> Guardar Ubicación
-                             </Button>
+                             <div className="grid grid-cols-2 gap-2">
+                                <Button onClick={handleSaveLocation} className="w-full bg-slate-600 hover:bg-slate-500">
+                                    <Save className="mr-2 h-4 w-4" /> Guardar
+                                </Button>
+                                <Button onClick={handleUseCurrentLocation} variant="outline" className="w-full bg-transparent hover:bg-white/10">
+                                    <MapPin className="mr-2 h-4 w-4" /> Usar Actual
+                                </Button>
+                            </div>
                         </div>
 
 
