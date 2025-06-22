@@ -7,8 +7,6 @@ import { Mic, Loader2, MicOff } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote } from '@/lib/types';
 import { mycoMind, type MycoMindInput } from '@/ai/flows/myco-mind-flow';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ProductImage } from '@/components/ProductImage';
 import { MycoSoundWave } from '@/components/MycoSoundWave';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -53,7 +51,7 @@ export default function MycoMindPage() {
     if (displayedMessage) {
         messageTimeoutRef.current = setTimeout(() => {
             setDisplayedMessage(null);
-        }, 7000); // Message visible for 7 seconds
+        }, 10000); // Message visible for 10 seconds
     }
     return () => {
         if (messageTimeoutRef.current) {
@@ -238,10 +236,13 @@ export default function MycoMindPage() {
   return (
     <main className="flex h-screen w-full flex-col bg-black text-slate-100 font-code overflow-hidden">
       
-      <header className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-20">
+      <header className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-20">
         <div className="text-left">
             <h1 className="font-headline text-2xl md:text-3xl text-white">{lote?.productos?.nombre}</h1>
-            <Badge variant={getStatusVariant(lote?.estado || '')} className="mt-1">{lote?.estado}</Badge>
+            <div className="flex items-center flex-wrap gap-2 mt-2">
+                <Badge variant={getStatusVariant(lote?.estado || '')}>{lote?.estado}</Badge>
+                {lote && <Badge variant="outline" className="border-white/30 text-white/80">{getAgeInDays(lote.created_at)} días de edad</Badge>}
+            </div>
         </div>
         <div className="flex items-center gap-2">
             {micPermission === 'pending' && <Loader2 className="h-5 w-5 animate-spin text-gray-400" />}
