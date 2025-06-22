@@ -141,6 +141,11 @@ export const dismissLoteAlertAction = async (loteId: string, reason: string): Pr
     throw new Error('Could not fetch lote to dismiss alert.');
   }
 
+  if (!lote) {
+    console.error(`Lote with id ${loteId} not found for dismissal.`);
+    throw new Error(`Lote with id ${loteId} not found.`);
+  }
+
   const currentAlerts = lote.dismissed_alerts || [];
   const newAlerts = [...new Set([...currentAlerts, reason])];
 
