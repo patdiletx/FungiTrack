@@ -102,7 +102,7 @@ export function SubstrateCalculator({ productos, id_producto, onFormulaCalculate
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleCalculate)} className="space-y-4">
+          <div className="space-y-4">
             <FormField
               control={form.control}
               name="knownIngredients"
@@ -132,11 +132,11 @@ export function SubstrateCalculator({ productos, id_producto, onFormulaCalculate
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={loading || !id_producto} className="w-full">
+            <Button type="button" onClick={form.handleSubmit(handleCalculate)} disabled={loading || !id_producto} className="w-full">
               {loading ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
               Calcular y Añadir a Notas
             </Button>
-          </form>
+          </div>
         </Form>
         {result && (
           <div className="mt-4 space-y-4 pt-4 border-t">
