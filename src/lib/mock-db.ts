@@ -5,7 +5,7 @@ import { supabase } from './supabaseClient';
 // --- Supabase API ---
 
 export const getProductos = async (): Promise<Producto[]> => {
-  const { data, error } = await supabase.from('productos').select('*');
+  const { data, error } = await supabase.from('productos').select('*').order('nombre', { ascending: true });
   if (error) {
     console.error('Error fetching productos:', error.message);
     // In a real app, you might want to show a user-friendly error
@@ -13,6 +13,43 @@ export const getProductos = async (): Promise<Producto[]> => {
   }
   return data || [];
 };
+
+export const createProducto = async (data: Omit<Producto, 'id' | 'created_at'>): Promise<Producto> => {
+  const newProductData = {
+    ...data,
+    id: uuidv4(),
+  };
+
+  const { data: newProduct, error } = await supabase
+    .from('productos')
+    .insert(newProductData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating producto:', error.message);
+    throw new Error('Failed to create producto.');
+  }
+
+  return newProduct;
+};
+
+export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'id' | 'created_at'>>): Promise<Producto | null> => {
+  const { data: updatedProduct, error } = await supabase
+    .from('productos')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating producto:', error.message);
+    throw new Error('Failed to update producto.');
+  }
+
+  return updatedProduct;
+};
+
 
 export const getLotes = async (): Promise<Lote[]> => {
   const { data, error } = await supabase

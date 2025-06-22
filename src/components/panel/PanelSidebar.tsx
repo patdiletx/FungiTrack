@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';
 import { Button } from '@/components/ui/button';
-import { LogOut, LayoutDashboard, PlusCircle } from 'lucide-react';
+import { LogOut, LayoutDashboard, PlusCircle, Box } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -38,17 +38,25 @@ export function PanelSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/panel'}>
-              <Link href="/panel">
-                <LayoutDashboard />
-                <span>Panel de Lotes</span>
-              </Link>
+                <Link href="/panel">
+                    <LayoutDashboard />
+                    <span>Panel de Lotes</span>
+                </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/panel/lotes/crear'}>
-              <Link href="/panel/lotes/crear">
-                <PlusCircle />
-                <span>Crear Lote</span>
+                <Link href="/panel/lotes/crear">
+                    <PlusCircle />
+                    <span>Crear Lote</span>
+                </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/panel/productos')}>
+              <Link href="/panel/productos">
+                <Box />
+                <span>Productos</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
