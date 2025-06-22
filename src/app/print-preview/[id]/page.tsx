@@ -10,7 +10,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
-import { FungiTrackLogo } from '@/components/FungiTrackLogo';
 
 export default function PrintPreviewPage() {
   const params = useParams();
@@ -36,9 +35,9 @@ export default function PrintPreviewPage() {
     return (
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Generando etiquetas...</h1>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
+            <Skeleton key={i} className="h-48 w-full" />
           ))}
         </div>
       </div>
@@ -64,14 +63,14 @@ export default function PrintPreviewPage() {
             </Button>
           </div>
       </div>
-      <div id="print-area" className="p-0 grid grid-cols-2 sm:grid-cols-3 gap-0 break-after-page">
+      <div id="print-area" className="p-0 grid grid-cols-1 md:grid-cols-2 gap-0 break-after-page">
         {Array.from({ length: lote.unidades_producidas }).map((_, i) => (
-          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-2 w-min justify-self-center" style={{backgroundColor: '#F5F5DC'}}>
-            <QrCode value={publicUrl} size={200} />
-            <div className='mt-2 space-y-1'>
-                <p className="text-base font-bold leading-tight">{lote.productos?.nombre}</p>
-                <p className="text-sm leading-tight">Lote: {lote.id.substring(0, 8)}</p>
-                <p className="text-sm leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
+          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-4" style={{backgroundColor: '#F5F5DC'}}>
+            <QrCode value={publicUrl} size={250} />
+            <div className='mt-4 space-y-1'>
+                <p className="text-xl font-bold leading-tight">{lote.productos?.nombre}</p>
+                <p className="text-md leading-tight">Lote: {lote.id.substring(0, 8)}</p>
+                <p className="text-md leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
             </div>
           </div>
         ))}
