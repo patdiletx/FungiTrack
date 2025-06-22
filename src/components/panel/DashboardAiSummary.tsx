@@ -1,12 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Sparkles, Lightbulb, Bot, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Sparkles, Lightbulb, Bot, ArrowRight, Loader2 } from 'lucide-react';
 import type { BatchSummaryOutput } from '@/ai/flows/batch-summary-flow';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
+import { dismissLoteAlertAction } from '@/lib/actions';
 
 interface DashboardAiSummaryProps {
   summary: BatchSummaryOutput | null;
@@ -14,6 +16,7 @@ interface DashboardAiSummaryProps {
 
 export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
   const router = useRouter();
+  const [isDismissing, setIsDismissing] = useState<string | null>(null);
 
   if (!summary) {
     return (
@@ -32,9 +35,21 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
     );
   }
 
-  const navigateToLote = (loteId: string) => {
-    router.push(`/panel/lote/${loteId}`);
+  const navigateToLote = async (loteId: string, reason: string) => {
+    const alertKey = `${loteId}-${reason}`;
+    setIsDismissing(alertKey);
+    try {
+      await dismissLoteAlertAction(loteId, reason);
+      router.push(`/panel/lote/${loteId}`);
+    } catch (error) {
+        console.error("Failed to dismiss alert:", error);
+        setIsDismissing(null);
+    }
   };
+  
+  const handleHighlightClick = (loteId: string) => {
+    router.push(`/panel/lote/${loteId}`);
+  }
 
   return (
     <Card>
@@ -53,15 +68,24 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
             </h3>
             <div className="space-y-2">
               {summary.attentionRequired.map((item) => (
-                <Alert key={item.loteId} variant="destructive">
+                <Alert key={item.loteId + item.reason} variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <div className="flex justify-between items-center w-full">
                     <div>
                       <AlertTitle>{item.productName}</AlertTitle>
                       <AlertDescription>{item.reason}</AlertDescription>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => navigateToLote(item.loteId)}>
-                        Ver Lote <ArrowRight className="ml-2 h-4 w-4" />
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => navigateToLote(item.loteId, item.reason)}
+                        disabled={isDismissing === `${item.loteId}-${item.reason}`}
+                    >
+                        {isDismissing === `${item.loteId}-${item.reason}` ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <>Ver Lote <ArrowRight className="ml-2 h-4 w-4" /></>
+                        )}
                     </Button>
                   </div>
                 </Alert>
@@ -78,14 +102,14 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
             </h3>
             <div className="space-y-2">
                 {summary.positiveHighlights.map((item) => (
-                    <Alert key={item.loteId} variant="success">
+                    <Alert key={item.loteId + item.reason} variant="success">
                         <Sparkles className="h-4 w-4" />
                         <div className="flex justify-between items-center w-full">
                             <div>
                                 <AlertTitle>{item.productName}</AlertTitle>
                                 <AlertDescription>{item.reason}</AlertDescription>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => navigateToLote(item.loteId)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleHighlightClick(item.loteId)}>
                                 Ver Lote <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </div>

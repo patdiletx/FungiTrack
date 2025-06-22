@@ -21,6 +21,7 @@ const LoteSummarySchema = z.object({
   status: z.string(),
   incidents: z.string().optional(),
   userActivity: KitSettingsSummarySchema.optional(),
+  dismissed_alerts: z.array(z.string()).optional().describe('A list of alert reasons that have already been acknowledged by the producer.'),
 });
 
 const BatchSummaryInputSchema = z.object({
@@ -62,6 +63,7 @@ export async function summarizeBatches(lotes: Lote[]): Promise<BatchSummaryOutpu
         photo_count: lote.kit_settings[0].photo_history?.length || 0,
         has_ai_interaction: !!lote.kit_settings[0].last_ai_response,
       } : undefined,
+      dismissed_alerts: lote.dismissed_alerts || undefined,
     })),
   };
   return batchSummaryFlow(flowInput);
@@ -79,6 +81,7 @@ const summaryPrompt = ai.definePrompt({
       - Producto: {{{productName}}}
       - Estado Productor: {{{status}}}
       - Incidencias del Productor: {{{incidents}}}
+      - Alertas Descartadas: {{#if dismissed_alerts}}{{#each dismissed_alerts}}{{{this}}}; {{/each}}{{else}}Ninguna{{/if}}
       - Actividad del Usuario: {{#if userActivity}}
         - Ubicación: {{#if userActivity.has_location}}Sí{{else}}No{{/if}}
         - Fotos subidas: {{userActivity.photo_count}}
@@ -96,7 +99,8 @@ const summaryPrompt = ai.definePrompt({
         - Lotes con estado "Contaminado". La razón debe ser "Contaminación reportada por el productor".
         - Lotes con "incidencias" registradas por el productor. La razón debe ser "Incidencias registradas".
         - Lotes donde el usuario ha subido fotos recientemente (photo_count > 0). La razón debe ser "Nuevas fotos de progreso subidas".
-        - Lotes con alta actividad del usuario que no están contaminados.
+        
+        **REGLA CRÍTICA:** NO incluyas un lote en esta lista si la razón que generarías ya está presente en el campo "Alertas Descartadas" de ese lote. Por ejemplo, si para el lote XYZ la razón es "Contaminación reportada por el productor" y esa misma frase ya está en sus "Alertas Descartadas", entonces NO debes incluir ese lote en la lista de 'attentionRequired' por esa razón.
 
     3.  **positiveHighlights**: Identifica noticias positivas o hitos. Por ejemplo:
         - Lotes que han cambiado a "En Fructificación" o "Listo para Venta".

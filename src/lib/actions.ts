@@ -76,7 +76,7 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
   return loteData;
 }
 
-export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings'>): Promise<Lote> => {
+export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings' | 'dismissed_alerts'>): Promise<Lote> => {
   const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
@@ -125,6 +125,36 @@ export const deleteLote = async (id: string): Promise<void> => {
   if (error) throw new Error('Failed to delete lote: ' + error.message);
   revalidatePath('/panel');
   revalidatePath(`/panel/lote/${id}`);
+};
+
+export const dismissLoteAlertAction = async (loteId: string, reason: string): Promise<void> => {
+  const supabase = createClient();
+  
+  const { data: lote, error: fetchError } = await supabase
+    .from('lotes')
+    .select('dismissed_alerts')
+    .eq('id', loteId)
+    .single();
+
+  if (fetchError) {
+    console.error('Error fetching lote for dismissal:', fetchError);
+    throw new Error('Could not fetch lote to dismiss alert.');
+  }
+
+  const currentAlerts = lote.dismissed_alerts || [];
+  const newAlerts = [...new Set([...currentAlerts, reason])];
+
+  const { error: updateError } = await supabase
+    .from('lotes')
+    .update({ dismissed_alerts: newAlerts })
+    .eq('id', loteId);
+
+  if (updateError) {
+    console.error('Error dismissing alert:', updateError);
+    throw new Error('Could not dismiss alert.');
+  }
+
+  revalidatePath('/panel');
 };
 
 

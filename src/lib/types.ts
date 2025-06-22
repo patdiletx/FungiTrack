@@ -60,6 +60,7 @@ export interface Lote {
   id_operador: string;
   productos?: Producto; // For joined queries
   kit_settings?: KitSettings[];
+  dismissed_alerts?: string[] | null;
 }
 
 export interface Ingrediente {
