@@ -39,8 +39,6 @@ export function LoteDetailClient({ lote, productos }: LoteDetailClientProps) {
     }
   };
 
-  const kitSettings = lote.kit_settings?.[0];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -136,7 +134,7 @@ export function LoteDetailClient({ lote, productos }: LoteDetailClientProps) {
             </Card>
           )}
 
-          <UserActivityCard settings={kitSettings} />
+          <UserActivityCard settings={lote.kit_settings} />
         </div>
         
         <div className="md:col-span-1 space-y-6">
