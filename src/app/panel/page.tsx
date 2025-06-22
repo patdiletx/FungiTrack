@@ -1,31 +1,8 @@
 import { getLotes } from "@/lib/mock-db";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BatchTable } from "@/components/panel/BatchTable";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const ChartSkeleton = () => (
-    <Card>
-        <CardHeader>
-            <Skeleton className="h-7 w-40 mb-2" />
-            <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent className="flex items-center justify-center h-64">
-             <Skeleton className="h-40 w-40 rounded-full" />
-        </CardContent>
-    </Card>
-);
-
-const BatchStatusChart = dynamic(() => 
-    import('@/components/panel/BatchStatusChart').then(mod => mod.BatchStatusChart), 
-    { 
-        ssr: false,
-        loading: () => <ChartSkeleton />
-    }
-);
+import { DashboardClient } from "@/components/panel/DashboardClient";
 
 export default async function PanelDashboard() {
   const lotes = await getLotes();
@@ -49,22 +26,7 @@ export default async function PanelDashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-            <Card>
-                <CardHeader>
-                <CardTitle className="font-headline">Lotes Recientes</CardTitle>
-                <CardDescription className="font-body">Haz clic en un lote para ver sus detalles.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                <BatchTable lotes={lotes} />
-                </CardContent>
-            </Card>
-        </div>
-        <div className="lg:col-span-2">
-            <BatchStatusChart lotes={lotes} />
-        </div>
-      </div>
+      <DashboardClient lotes={lotes} />
     </div>
   );
 }
