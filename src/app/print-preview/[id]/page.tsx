@@ -72,6 +72,7 @@ export default function PrintPreviewPage() {
                 <p className="text-sm leading-tight">Lote: {lote.id.substring(0, 8)}</p>
                 <p className="text-sm leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
             </div>
+            <p className="text-xs mt-1 font-bold" style={{ color: '#8FBC8F' }}>FungiGrow</p>
           </div>
         ))}
       </div>

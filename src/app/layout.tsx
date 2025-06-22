@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'FungiTrack',
-  description: 'Sistema de Trazabilidad por Lote para FungiGrow Advisor',
+  title: 'FungiTrack by FungiGrow',
+  description: 'Sistema de Trazabilidad y Experiencia de Cultivo Simbionte por FungiGrow.',
 };
 
 export default function RootLayout({
