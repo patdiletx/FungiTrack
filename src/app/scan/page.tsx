@@ -25,24 +25,30 @@ export default function PublicScanPage() {
     });
   }, []);
   
-  const startScan = () => {
+  const startScan = useCallback(() => {
     setView('scanning');
-  };
+  }, []);
 
+  // Cleanup camera stream on component unmount
   useEffect(() => {
-    // Cleanup camera stream on component unmount
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
+      }
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
       }
     };
   }, []);
   
   useEffect(() => {
     if (view === 'scanning') {
+      let isCancelled = false;
+
       const enableCamera = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          if (isCancelled) return;
           toast({
             variant: 'destructive',
             title: 'Cámara no soportada',
@@ -54,6 +60,10 @@ export default function PublicScanPage() {
 
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (isCancelled) {
+              stream.getTracks().forEach(track => track.stop());
+              return;
+          }
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           } else {
@@ -65,6 +75,7 @@ export default function PublicScanPage() {
              });
           }
         } catch (error) {
+          if (isCancelled) return;
           console.error('Error accessing camera:', error);
           setView('denied');
           toast({
@@ -75,6 +86,10 @@ export default function PublicScanPage() {
         }
       };
       enableCamera();
+
+      return () => {
+          isCancelled = true;
+      }
     }
   }, [view, toast]);
 
@@ -115,7 +130,7 @@ export default function PublicScanPage() {
             throw new Error('QR no es válido para esta aplicación.');
           }
         } catch (e) {
-          toast({ variant: 'destructive', title: 'Código QR no válido', description: 'El código escaneado no es un enlace de FungiTrack válido.' });
+          toast({ variant: 'destructive', title: 'Código QR no válido', description: 'El código escaneado no es un enlace de FungiGrow válido.' });
           setTimeout(() => setView('scanning'), 2000);
         }
       }
@@ -137,7 +152,7 @@ export default function PublicScanPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-[#201A30] text-slate-200">
         <canvas ref={canvasRef} className="hidden" />
-
+        
         {view === 'welcome' && (
              <div className="flex flex-col items-center text-center animate-in fade-in duration-1000">
                 <FungiTrackLogo className="mb-4 text-white" />

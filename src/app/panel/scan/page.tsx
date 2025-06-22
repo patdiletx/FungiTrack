@@ -101,7 +101,7 @@ export default function ScanPage() {
             throw new Error('QR no es válido para esta aplicación.');
           }
         } catch (e) {
-          toast({ variant: 'destructive', title: 'Código QR no válido', description: 'El código escaneado no es un enlace de FungiTrack válido.' });
+          toast({ variant: 'destructive', title: 'Código QR no válido', description: 'El código escaneado no es un enlace de FungiGrow válido.' });
           setTimeout(() => setIsProcessing(false), 2000);
         }
       }

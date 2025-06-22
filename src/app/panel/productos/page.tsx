@@ -11,7 +11,7 @@ export default async function ProductosPage() {
           Gestión de Productos
         </h1>
         <p className="mt-1 text-muted-foreground font-body">
-          Crea, edita y gestiona los productos que FungiTrack puede trazar.
+          Crea, edita y gestiona los productos que FungiGrow puede trazar.
         </p>
       </div>
       <ProductClient productos={productos} />
