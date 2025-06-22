@@ -3,11 +3,10 @@
 import { getLoteByIdAction } from '@/lib/actions';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mic, Loader2, Zap, BrainCircuit, X } from 'lucide-react';
+import { Mic, Loader2, BrainCircuit } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote } from '@/lib/types';
 import { mycoMind, type MycoMindInput, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
-import { textToSpeech } from '@/ai/flows/text-to-speech-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Hud } from '@/components/Simbionte/Hud';
@@ -44,7 +43,6 @@ export default function MycoSimbiontePage() {
   const [panelOpen, setPanelOpen] = useState(false);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const recognitionRef = useRef<any>(null);
 
@@ -79,13 +77,6 @@ export default function MycoSimbiontePage() {
         const { response, mood } = await mycoMind(input);
         setMycoMood(mood);
         setDisplayedMessage({ id: Date.now(), text: response });
-        
-        const { audioDataUri } = await textToSpeech(response);
-        if (audioRef.current) {
-            audioRef.current.src = audioDataUri;
-            audioRef.current.play().catch(e => console.error("Audio playback failed", e));
-        }
-
       } catch (e) {
         console.error("Error calling Myco-Mind AI:", e);
         setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
@@ -181,8 +172,6 @@ export default function MycoSimbiontePage() {
 
   return (
     <main className="flex h-screen w-full flex-col bg-[#201A30] text-slate-100 font-body overflow-hidden">
-      <audio ref={audioRef} className="hidden" />
-
       <Hud 
         age={lote ? getAgeInDays(lote.created_at) : 0} 
         mood={mycoMood} 
