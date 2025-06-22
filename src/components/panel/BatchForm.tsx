@@ -59,7 +59,10 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const newLote = await createLote(values);
+      const newLote = await createLote({
+        ...values,
+        created_at: new Date().toISOString(),
+      });
       toast({
         title: "Lote Creado Exitosamente",
         description: `El lote para ${values.unidades_producidas} unidades ha sido registrado.`,

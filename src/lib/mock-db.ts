@@ -84,14 +84,13 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
   return data;
 };
 
-export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos'>): Promise<Lote> => {
+export const createLote = async (data: Omit<Lote, 'id' | 'estado' | 'id_operador' | 'productos'>): Promise<Lote> => {
   if (!supabase) throw new Error('Supabase client is not initialized.');
   // The id_operador will be set by the database using the authenticated user's ID
   // thanks to `default auth.uid()` and our RLS policy.
   const newLoteData = {
     ...data,
     id: uuidv4(),
-    created_at: new Date().toISOString(),
     estado: 'En Incubación',
   };
 
