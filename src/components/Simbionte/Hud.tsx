@@ -21,6 +21,7 @@ const moodTextColors: Record<MycoMindOutput['mood'], string> = {
 const statusTextColors: { [key: string]: string } = {
     'En Incubación': 'text-cyan-400',
     'En Fructificación': 'text-green-400',
+    'Listo para Cosecha': 'text-yellow-400',
     'Listo para Venta': 'text-lime-400',
     'Vendido': 'text-slate-400',
     'Contaminado': 'text-red-500',

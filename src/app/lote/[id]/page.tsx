@@ -64,6 +64,22 @@ const getAgeInDays = (creationDate: string | Date): number => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
+const getDynamicStatus = (lote: Lote): string => {
+    // Manual override states that stop the automatic progression.
+    const overrideStates = ['Contaminado', 'Vendido', 'Listo para Venta'];
+    if (overrideStates.includes(lote.estado)) {
+        return lote.estado;
+    }
+
+    const age = getAgeInDays(lote.created_at);
+
+    // Age-based automatic progression
+    if (age <= 14) return 'En Incubación';
+    if (age <= 25) return 'En Fructificación';
+    return 'Listo para Cosecha'; // New automatic state
+};
+
+
 export default function MycoSimbiontePage() {
   const params = useParams();
   const id = params.id as string;
@@ -86,6 +102,8 @@ export default function MycoSimbiontePage() {
 
   const recognitionRef = useRef<any>(null);
   const initialCallMade = useRef(false);
+  
+  const dynamicStatus = lote ? getDynamicStatus(lote) : 'Cargando...';
 
 
   // Load data from localStorage
@@ -174,7 +192,7 @@ export default function MycoSimbiontePage() {
             loteContext: {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
-              status: lote.estado,
+              status: getDynamicStatus(lote),
               incidencias: lote.incidencias || undefined,
               latitude: coordinates?.latitude,
               longitude: coordinates?.longitude,
@@ -274,8 +292,7 @@ export default function MycoSimbiontePage() {
         interactionType: 'INITIALIZE', 
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lote, loading, localStorageLoaded]); // Do not add callMycoMind to avoid re-triggering
+  }, [lote, loading, localStorageLoaded, callMycoMind]);
 
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
@@ -299,7 +316,7 @@ export default function MycoSimbiontePage() {
         <Hud
           age={lote ? getAgeInDays(lote.created_at) : 0}
           mood={mycoMood}
-          status={lote?.estado || 'Cargando...'}
+          status={dynamicStatus}
           productName={lote?.productos?.nombre || 'Kit de Cultivo'}
           weather={weather}
         />
@@ -309,11 +326,11 @@ export default function MycoSimbiontePage() {
         </Button>
       </header>
 
-      <div className="relative flex-1 w-full flex items-center justify-center z-10">
+      <div className="relative flex-1 w-full flex items-center justify-center z-10 px-8">
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
-              className="text-center w-full max-w-2xl px-8 animate-float-up"
+              className="text-center w-full max-w-2xl animate-float-up"
             >
                 <p className="font-headline text-3xl md:text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] whitespace-pre-wrap leading-tight">
                     {displayedMessage.text}
