@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FungiTrackLogo } from "@/components/FungiTrackLogo";
-import { LogIn, KeyRound, AtSign, Loader2, UserPlus } from 'lucide-react';
+import { LogIn, KeyRound, AtSign, Loader2, UserPlus, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthError } from '@supabase/supabase-js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createClient } from '@/lib/supabase/client';
+import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Por favor, ingresa un email válido." }),
@@ -113,7 +114,7 @@ export default function LoginPage() {
 
       <Tabs defaultValue="login" className="w-full max-w-sm">
         <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Ingresar</TabsTrigger>
+            <TabsTrigger value="login">Ingresar (Operador)</TabsTrigger>
             <TabsTrigger value="register">Registrarse</TabsTrigger>
         </TabsList>
         
@@ -223,6 +224,17 @@ export default function LoginPage() {
             </Card>
         </TabsContent>
       </Tabs>
+
+      <Separator className="my-6 max-w-sm w-full" />
+      
+      <div className="text-center">
+         <p className="text-sm text-muted-foreground mb-2">¿Tienes un kit de cultivo?</p>
+         <Button variant="outline" onClick={() => router.push('/scan')}>
+            <QrCode className="mr-2 h-4 w-4" />
+            Escanear mi Kit
+         </Button>
+      </div>
+
     </main>
   );
 }

@@ -68,7 +68,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - lote/ (public qr code pages)
+     * - scan (public qr code scanner)
      */
-    '/((?!_next/static|_next/image|favicon.ico|lote).*)',
+    '/((?!_next/static|_next/image|favicon.ico|lote|scan).*)',
   ],
 }
