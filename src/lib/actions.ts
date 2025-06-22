@@ -5,6 +5,7 @@ import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './t
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from './supabase/server';
 import { revalidatePath } from 'next/cache';
+import { useRouter } from 'next/navigation';
 
 // --- PRODUCTOS ---
 
@@ -83,7 +84,7 @@ export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise
   return loteData;
 }
 
-export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings' | 'dismissed_alerts' | 'lotes_sustrato'>): Promise<Lote> => {
+export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings' | 'dismissed_alerts' | 'lotes_sustrato' | 'id_formulacion' | 'notas_sustrato'>): Promise<Lote> => {
   const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
@@ -132,7 +133,7 @@ export const deleteLote = async (id: string): Promise<void> => {
   revalidatePath(`/panel/lote/${id}`);
 };
 
-export const dismissLoteAlertAction = async (loteId: string, reason: string): Promise<void> => {
+export const dismissLoteAlertAction = async (loteId: string, reason: string): Promise<Lote | null> => {
   const supabase = createClient();
   
   const { data: lote, error: fetchError } = await supabase
@@ -149,10 +150,12 @@ export const dismissLoteAlertAction = async (loteId: string, reason: string): Pr
   const currentAlerts = lote.dismissed_alerts || [];
   const newAlerts = [...new Set([...currentAlerts, reason])];
 
-  const { error: updateError } = await supabase
+  const { data: updatedLote, error: updateError } = await supabase
     .from('lotes')
     .update({ dismissed_alerts: newAlerts })
-    .eq('id', loteId);
+    .eq('id', loteId)
+    .select()
+    .single();
 
   if (updateError) {
     console.error('Error dismissing alert:', updateError);
@@ -160,6 +163,7 @@ export const dismissLoteAlertAction = async (loteId: string, reason: string): Pr
   }
 
   revalidatePath('/panel');
+  return updatedLote;
 };
 
 
@@ -225,12 +229,12 @@ export const updateKitSettingsAction = async (loteId: string, unitIndex: number,
     const supabase = createClient();
     
     // Use upsert to create or update settings for a kit.
-    // We now specify the constraint NAME directly in onConflict for greater robustness.
+    // We specify the columns that form the unique constraint.
     const { data, error } = await supabase
         .from('kit_settings')
         .upsert(
             { lote_id: loteId, unit_index: unitIndex, ...settings },
-            { onConflict: 'kit_settings_lote_id_unit_index_key' } // Using constraint name
+            { onConflict: 'lote_id,unit_index' } // Using column names
         )
         .select()
         .single();
