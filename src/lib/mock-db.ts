@@ -87,10 +87,15 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
 
 export const createLote = async (data: Omit<Lote, 'id' | 'estado' | 'id_operador' | 'productos'>): Promise<Lote> => {
   if (!supabase) throw new Error('Supabase client is not initialized.');
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated to create lote.');
+
   const newLoteData = {
     ...data,
     id: uuidv4(),
     estado: 'En Incubación',
+    id_operador: user.id,
   };
 
   const { data: newLote, error } = await supabase
@@ -149,9 +154,14 @@ export const getFormulaciones = async (): Promise<Formulacion[]> => {
 
 export const createFormulacion = async (data: Omit<Formulacion, 'id' | 'created_at' | 'id_operador'>): Promise<Formulacion> => {
   if (!supabase) throw new Error('Supabase client is not initialized.');
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated to create formulation.');
+
   const newFormulacionData = {
     ...data,
     id: uuidv4(),
+    id_operador: user.id,
   };
 
   const { data: newFormulacion, error } = await supabase
