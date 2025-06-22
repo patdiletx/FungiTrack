@@ -123,7 +123,7 @@ export function CareProgressPanel({
                 <SheetHeader className="text-left">
                     <SheetTitle className="font-headline text-3xl text-white">Cuidados y Progreso</SheetTitle>
                     <SheetDescription className="text-slate-400">
-                        Configura alertas y registra la evolución de tu simbionte.
+                        Configura alertas y registra la evolución de tu cultivo.
                     </SheetDescription>
                 </SheetHeader>
 
@@ -133,7 +133,7 @@ export function CareProgressPanel({
                         <div className="p-4 rounded-lg bg-black/20 border border-white/10">
                             <h3 className="text-lg font-bold flex items-center gap-3 mb-4">
                                 <Network className="h-6 w-6 text-[#70B0F0]" />
-                                Red de Simbiontes
+                                Mis Kits de Cultivo
                             </h3>
                             <div className="space-y-2">
                                 {myKits.length <= 1 && (
@@ -154,7 +154,7 @@ export function CareProgressPanel({
                                 ))}
                                 <Link href="/scan" passHref>
                                      <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent hover:bg-white/10">
-                                        <Plus className="mr-2 h-4 w-4" /> Añadir otro Simbionte
+                                        <Plus className="mr-2 h-4 w-4" /> Añadir otro Kit
                                     </Button>
                                 </Link>
                             </div>

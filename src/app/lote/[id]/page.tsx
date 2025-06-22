@@ -249,7 +249,7 @@ export default function MycoSimbiontePage() {
           age={lote ? getAgeInDays(lote.created_at) : 0}
           mood={mycoMood}
           status={lote?.estado || 'Cargando...'}
-          productName={lote?.productos?.nombre || 'Simbionte'}
+          productName={lote?.productos?.nombre || 'Kit de Cultivo'}
         />
 
         <Button variant="ghost" onClick={() => setIsCarePanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white shrink-0">

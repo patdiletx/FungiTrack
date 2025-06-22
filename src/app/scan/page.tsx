@@ -108,7 +108,7 @@ export default function PublicScanPage() {
           const loteId = pathSegments.pop() || pathSegments.pop();
 
           if (pathSegments.includes('lote') && loteId) {
-            toast({ title: 'Simbiosis Establecida', description: `Iniciando conexión con Myco...` });
+            toast({ title: 'Kit Reconocido', description: `Iniciando asistente...` });
             router.push(`/lote/${loteId}`);
             return; // Stop the loop
           } else {
@@ -140,14 +140,15 @@ export default function PublicScanPage() {
 
         {view === 'welcome' && (
              <div className="flex flex-col items-center text-center animate-in fade-in duration-1000">
+                <FungiTrackLogo className="mb-4 text-white" />
                 <h1 className="font-headline text-6xl md:text-8xl text-white">
-                  Simbionte Myco
+                  FungiGrow AI
                 </h1>
                 <p className="mt-4 text-lg text-slate-400 font-body">
-                  Una experiencia de co-evolución.
+                  Tu asistente de cultivo inteligente.
                 </p>
                 <Button onClick={startScan} size="lg" className="mt-8 bg-[#A080E0] text-white hover:bg-[#A080E0]/90 rounded-full px-12 py-6 text-xl">
-                    Iniciar Simbiosis
+                    Escanear Kit para Empezar
                 </Button>
             </div>
         )}
