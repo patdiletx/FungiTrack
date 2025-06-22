@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import jsQR from 'jsqr';
+import type jsqr from 'jsqr'; // Import type for type-safety, not the library itself
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -17,8 +17,14 @@ export default function ScanPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
+  const jsQrRef = useRef<typeof jsqr | null>(null);
 
   useEffect(() => {
+    // Dynamically import the jsqr library only on the client-side to prevent server crashes
+    import('jsqr').then((module) => {
+      jsQrRef.current = module.default;
+    });
+
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -50,7 +56,8 @@ export default function ScanPage() {
     let animationFrameId: number;
 
     const tick = () => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && isScanning) {
+      const jsQR = jsQrRef.current;
+      if (jsQR && videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && isScanning) {
         if (canvasRef.current) {
           const canvas = canvasRef.current;
           const video = videoRef.current;
