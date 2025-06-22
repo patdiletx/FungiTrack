@@ -4,29 +4,22 @@ import { supabase } from './supabaseClient';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from './supabaseClient';
-import type { SupabaseClient } from '@supabase/supabase-js';
-
-// This function creates a Supabase client that can be used in Server Components.
-// It will correctly handle authentication by reading cookies.
-function createServerSupabaseClient(): SupabaseClient<Database> {
-    const cookieStore = cookies();
-    return createServerClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value;
-                },
-            },
-        }
-    );
-}
 
 // --- PRODUCTOS ---
 
 export const getProductos = async (): Promise<Producto[]> => {
-  const supabaseServer = createServerSupabaseClient();
+  const cookieStore = cookies();
+  const supabaseServer = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+          cookies: {
+              get(name: string) {
+                  return cookieStore.get(name)?.value;
+              },
+          },
+      }
+  );
   const { data, error } = await supabaseServer.from('productos').select('*').order('nombre', { ascending: true });
   if (error) {
     console.error('Error fetching productos:', error.message);
@@ -77,7 +70,18 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 // --- LOTES ---
 
 export const getLotes = async (): Promise<Lote[]> => {
-  const supabaseServer = createServerSupabaseClient();
+  const cookieStore = cookies();
+  const supabaseServer = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+          cookies: {
+              get(name: string) {
+                  return cookieStore.get(name)?.value;
+              },
+          },
+      }
+  );
   const { data, error } = await supabaseServer
     .from('lotes')
     .select('*, productos(*)')
@@ -91,7 +95,18 @@ export const getLotes = async (): Promise<Lote[]> => {
 };
 
 export const getLoteById = async (id: string): Promise<Lote | null> => {
-   const supabaseServer = createServerSupabaseClient();
+   const cookieStore = cookies();
+   const supabaseServer = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+          cookies: {
+              get(name: string) {
+                  return cookieStore.get(name)?.value;
+              },
+          },
+      }
+  );
    const { data, error } = await supabaseServer
     .from('lotes')
     .select('*, productos(*)')
@@ -147,9 +162,6 @@ export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' |
     throw new Error('Failed to update lote.');
   }
   
-  // This is a client-side call, so we can't use the server client.
-  // We'll refetch using the standard client. It's better to reconstruct the object
-  // if possible, but this will do for now.
   const { data: refetchedData } = await supabase.from('lotes').select('*, productos(*)').eq('id', id).single();
   return refetchedData;
 };
@@ -168,7 +180,18 @@ export const deleteLote = async (id: string): Promise<void> => {
 // --- FORMULACIONES ---
 
 export const getFormulaciones = async (): Promise<Formulacion[]> => {
-  const supabaseServer = createServerSupabaseClient();
+  const cookieStore = cookies();
+  const supabaseServer = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+          cookies: {
+              get(name: string) {
+                  return cookieStore.get(name)?.value;
+              },
+          },
+      }
+  );
   const { data, error } = await supabaseServer.from('formulaciones').select('*').order('puntuacion', { ascending: false });
   if (error) {
     console.error('Error fetching formulaciones:', error.message);
