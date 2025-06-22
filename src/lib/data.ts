@@ -21,9 +21,10 @@ export const getProductos = async (): Promise<Producto[]> => {
 
 export const getLotes = async (): Promise<Lote[]> => {
   const supabase = createClient();
+  // Explicitly select all columns to ensure 'dismissed_alerts' is included.
   const { data: lotes, error: lotesError } = await supabase
     .from('lotes')
-    .select('*, productos(*)')
+    .select('id, created_at, id_producto, unidades_producidas, id_formulacion, notas_sustrato, estado, incidencias, id_operador, dismissed_alerts, productos(*)')
     .order('created_at', { ascending: false });
 
   if (lotesError) {
