@@ -8,7 +8,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarGroup
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent
 } from '@/components/ui/sidebar';
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';
 import { Button } from '@/components/ui/button';
