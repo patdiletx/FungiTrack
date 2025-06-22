@@ -4,16 +4,17 @@ import { getLoteByIdAction } from '@/lib/actions';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Droplets, Loader2, Zap } from 'lucide-react';
+import { Send, Droplets, Loader2, Zap, Mic, MicOff } from 'lucide-react';
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import type { Lote } from '@/lib/types';
-import { MycoNeuralNetwork } from '@/components/MycoNeuralNetwork';
 import { mycoMind, type MycoMindInput } from '@/ai/flows/myco-mind-flow';
 import { upsellStrategy, type UpsellStrategyOutput } from '@/ai/flows/upsell-strategy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductImage } from '@/components/ProductImage';
+import { MycoSoundWave } from '@/components/MycoSoundWave';
+import { useToast } from '@/hooks/use-toast';
 
-type NetworkState = 'idle' | 'listening' | 'thinking' | 'hydrating' | 'error' | 'complex';
+export type NetworkState = 'idle' | 'listening' | 'thinking' | 'hydrating' | 'error' | 'complex';
 type Message = {
     sender: 'user' | 'myco';
     text: string;
@@ -29,6 +30,7 @@ const getAgeInDays = (creationDate: string | Date): number => {
 export default function MycoMindPage() {
   const params = useParams();
   const id = params.id as string;
+  const { toast } = useToast();
 
   const [lote, setLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,10 @@ export default function MycoMindPage() {
   const [userInput, setUserInput] = useState('');
   const [isMycoTyping, setIsMycoTyping] = useState(false);
   const [upsell, setUpsell] = useState<UpsellStrategyOutput | null>(null);
-
+  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
+  const [micPermission, setMicPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const callMycoMind = async (input: MycoMindInput) => {
@@ -47,8 +52,9 @@ export default function MycoMindPage() {
         const { response } = await mycoMind(input);
         setMessages(prev => [...prev, { sender: 'myco', text: response }]);
         
-        const isContaminated = lote?.estado === 'Contaminado';
-        const age = getAgeInDays(lote?.created_at || new Date());
+        const currentLote = lote || await getLoteByIdAction(id);
+        const isContaminated = currentLote?.estado === 'Contaminado';
+        const age = getAgeInDays(currentLote?.created_at || new Date());
 
         if (isContaminated) {
             setNetworkState('error');
@@ -68,8 +74,44 @@ export default function MycoMindPage() {
   };
 
   useEffect(() => {
+    const getMicPermission = async () => {
+        try {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                throw new Error('La API de medios no es soportada en este navegador.');
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            
+            const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+            audioContextRef.current = context;
+            const source = context.createMediaStreamSource(stream);
+            const analyser = context.createAnalyser();
+            source.connect(analyser);
+            
+            setAnalyserNode(analyser);
+            setMicPermission('granted');
+
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            setMicPermission('denied');
+            toast({
+                variant: 'destructive',
+                title: 'Acceso al Micrófono Denegado',
+                description: 'La visualización de sonido requiere acceso al micrófono. Por favor, habilita los permisos.',
+            });
+        }
+    };
+    getMicPermission();
+
+    return () => {
+        audioContextRef.current?.close().catch(console.error);
+    }
+  }, [toast]);
+
+
+  useEffect(() => {
     if (!id) return;
     async function fetchData() {
+      setLoading(true);
       const loteData = await getLoteByIdAction(id);
       if (!loteData || !loteData.productos) {
         notFound();
@@ -160,17 +202,31 @@ export default function MycoMindPage() {
     return <div className="flex h-screen w-full items-center justify-center bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
 
+  const isComplex = lote ? getAgeInDays(lote.created_at) >= 7 : false;
+
   return (
-    <main className="flex h-screen w-full flex-col bg-black text-slate-100 font-code">
+    <main className="flex h-screen w-full flex-col bg-black text-slate-100 font-code overflow-hidden">
       <div className="relative flex-1 w-full h-2/5 md:h-1/2 flex items-center justify-center p-4">
-        <MycoNeuralNetwork state={networkState} className="w-full h-full max-w-md max-h-md" />
+        <MycoSoundWave
+            analyser={analyserNode}
+            state={networkState}
+            isComplex={isComplex}
+            className="w-full h-full max-w-2xl max-h-2xl"
+        />
+
         <div className="absolute top-4 left-4 text-left">
             <h1 className="font-headline text-3xl text-white">{lote?.productos?.nombre}</h1>
             <p className="text-primary text-sm">Conciencia: Myco-Mind AI</p>
         </div>
+
+        <div className="absolute top-4 right-4">
+            {micPermission === 'pending' && <Loader2 className="h-5 w-5 animate-spin text-gray-400" />}
+            {micPermission === 'granted' && <Mic className="h-5 w-5 text-green-400" />}
+            {micPermission === 'denied' && <MicOff className="h-5 w-5 text-red-400" />}
+        </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-background/5 backdrop-blur-sm border-t border-primary/20 p-4">
+      <div className="flex-1 flex flex-col bg-gradient-to-t from-black via-black/90 to-transparent backdrop-blur-sm border-t border-primary/20 p-4">
         <div className="flex-grow overflow-y-auto pr-2 space-y-4">
           {messages.map((msg, index) => (
             <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -222,7 +278,7 @@ export default function MycoMindPage() {
                 placeholder="Converse con Myco..."
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                onFocus={() => { if(networkState !== 'complex' && networkState !== 'error') setNetworkState('listening')}}
+                onFocus={() => { if(networkState !== 'complex' && networkState !== 'error' && micPermission === 'granted') setNetworkState('listening')}}
                 onBlur={() => { if(networkState !== 'complex' && networkState !== 'error') setNetworkState('idle')}}
                 className="bg-card/10 border-primary/30 h-12 text-base text-white placeholder:text-gray-400"
                 disabled={isMycoTyping}
