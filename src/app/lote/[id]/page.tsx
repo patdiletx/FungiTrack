@@ -290,6 +290,46 @@ export default function MycoSimbiontePage() {
     }
   }, [lote, loading, localStorageLoaded, callMycoMind]);
 
+  // Handles scheduling and firing notifications
+  useEffect(() => {
+    // Notifications only run in the browser and if enabled by the user and permission is granted
+    if (typeof window === 'undefined' || !notificationSettings.enabled || Notification.permission !== 'granted') {
+      return;
+    }
+
+    const checkAndNotify = () => {
+      const now = new Date();
+      // Format to HH:mm for comparison
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      const { watering, aeration } = notificationSettings;
+
+      // Check for watering notification
+      if (watering.enabled && watering.time === currentTime) {
+        new Notification('💧 Recordatorio de Riego', {
+          body: `¡Es hora de regar tu ${lote?.productos?.nombre || 'cultivo'}! La hidratación es clave.`,
+          // The tag prevents duplicate notifications if the user has multiple tabs open
+          tag: `fungi-watering-${id}`, 
+        });
+      }
+
+      // Check for aeration notifications
+      if (aeration.enabled && aeration.times.includes(currentTime)) {
+         new Notification('🌬️ Recordatorio de Ventilación', {
+          body: `¡Es hora de ventilar tu ${lote?.productos?.nombre || 'cultivo'}! Un poco de aire fresco le vendrá genial.`,
+          tag: `fungi-aeration-${id}-${currentTime}`,
+        });
+      }
+    };
+
+    // Check every minute.
+    const intervalId = setInterval(checkAndNotify, 60000); 
+
+    // Important: Clean up the interval when the component unmounts or settings change.
+    return () => clearInterval(intervalId);
+
+  }, [notificationSettings, lote, id]);
+
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
     

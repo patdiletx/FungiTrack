@@ -69,10 +69,9 @@ export function CareProgressPanel({
             }
         }
         onSettingsChange({ ...notificationSettings, enabled });
-        if (enabled) {
+        if (enabled && Notification.permission === 'granted') {
             new Notification('FungiGrow AI Conectado', {
                 body: 'Las alertas de cuidado están ahora activas.',
-                icon: '/logo.png' 
             });
         }
     };
