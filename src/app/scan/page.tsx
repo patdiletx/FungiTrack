@@ -25,43 +25,59 @@ export default function PublicScanPage() {
     });
   }, []);
   
-  const startScan = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast({
-        variant: 'destructive',
-        title: 'Cámara no soportada',
-        description: 'Tu navegador no soporta el acceso a la cámara.',
-      });
-      setView('denied');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setView('scanning');
-      }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setView('denied');
-      toast({
-        variant: 'destructive',
-        title: 'Acceso a la cámara denegado',
-        description: 'Por favor, habilita los permisos de la cámara en la configuración de tu navegador.',
-      });
-    }
+  const startScan = () => {
+    setView('scanning');
   };
 
   useEffect(() => {
+    // Cleanup camera stream on component unmount
     return () => {
-      // Cleanup camera stream on component unmount
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
+  
+  useEffect(() => {
+    if (view === 'scanning') {
+      const enableCamera = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          toast({
+            variant: 'destructive',
+            title: 'Cámara no soportada',
+            description: 'Tu navegador no soporta el acceso a la cámara.',
+          });
+          setView('denied');
+          return;
+        }
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          } else {
+             setView('denied');
+             toast({
+                variant: 'destructive',
+                title: 'Error de interfaz',
+                description: 'No se pudo inicializar el visor de la cámara.',
+             });
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setView('denied');
+          toast({
+            variant: 'destructive',
+            title: 'Acceso a la cámara denegado',
+            description: 'Por favor, habilita los permisos de la cámara en la configuración de tu navegador.',
+          });
+        }
+      };
+      enableCamera();
+    }
+  }, [view, toast]);
+
 
   const scanLoop = useCallback(() => {
     if (view !== 'scanning') return;
