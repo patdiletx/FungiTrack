@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BatchForm } from "@/components/panel/BatchForm";
 import Link from 'next/link';
+import { BatchAssistant } from "@/components/panel/BatchAssistant";
 
 type Props = {
   params: { id: string };
@@ -117,8 +118,9 @@ export default async function LoteDetailPage({ params }: Props) {
           )}
         </div>
         
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 space-y-6">
           <BatchForm productos={productos} lote={lote} />
+          <BatchAssistant lote={lote} />
         </div>
       </div>
     </div>
