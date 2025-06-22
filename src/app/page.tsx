@@ -46,7 +46,7 @@ export default function LoginPage() {
       } else {
         toast({
           title: "Error de autenticación",
-          description: "Email o contraseña incorrectos. Por favor, inténtalo de nuevo.",
+          description: error.message, // Mostrar el error real de Supabase
           variant: "destructive",
         });
       }
