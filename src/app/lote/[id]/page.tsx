@@ -6,8 +6,8 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, Droplets, Package, Sun, Thermometer, Wind } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import Image from 'next/image';
 import { UpsellSection } from '@/components/UpsellSection';
+import { ProductImage } from '@/components/ProductImage';
 
 type Props = {
   params: { id: string };
@@ -42,10 +42,8 @@ export default async function PublicLotePage({ params }: Props) {
         <Card className="shadow-lg">
           <CardHeader>
             <div className="flex flex-col md:flex-row gap-4 items-center">
-                <Image 
-                    src={`https://placehold.co/400x400.png`}
-                    data-ai-hint="oyster mushrooms"
-                    alt={productos.nombre}
+                <ProductImage 
+                    productName={productos.nombre}
                     width={120} 
                     height={120}
                     className="rounded-lg object-cover shadow-md"

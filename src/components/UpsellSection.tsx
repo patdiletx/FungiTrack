@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { upsellStrategy, UpsellStrategyOutput } from '@/ai/flows/upsell-strategy';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, ShoppingCart } from 'lucide-react';
-import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
+import { ProductImage } from './ProductImage';
 
 interface UpsellSectionProps {
   productId: string;
@@ -67,10 +67,8 @@ export function UpsellSection({ productId }: UpsellSectionProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col md:flex-row items-center gap-6">
-        <Image 
-            src="https://placehold.co/400x400.png"
-            data-ai-hint="mushrooms substrate"
-            alt="Bloque Productor XL" 
+        <ProductImage 
+            productName="Bloque Productor XL" 
             width={150} 
             height={150} 
             className="rounded-lg shadow-md object-cover"
