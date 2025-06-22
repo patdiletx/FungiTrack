@@ -250,6 +250,9 @@ export function CareProgressPanel({
                                     onCheckedChange={handleMasterToggle}
                                 />
                             </div>
+                            <p className="text-xs text-slate-500 -mt-2">
+                                Para recibir notificaciones, esta página debe permanecer abierta en una pestaña del navegador (incluso en segundo plano).
+                            </p>
                            
                            <div className={cn("space-y-4 transition-opacity", !notificationSettings.enabled && "opacity-50 pointer-events-none")}>
                                 {/* Watering */}
