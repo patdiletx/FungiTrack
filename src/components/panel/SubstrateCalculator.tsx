@@ -34,7 +34,7 @@ export function SubstrateCalculator({ productos, id_producto, onFormulaCalculate
   const form = useForm<z.infer<typeof calculatorSchema>>({
     resolver: zodResolver(calculatorSchema),
     defaultValues: {
-      knownIngredients: 'Viruta 70%, Salvado 20%, Alfalfa 10%',
+      knownIngredients: 'Tengo 7kg de viruta y 2kg de salvado.',
       totalWeightKg: 10,
     },
   });
@@ -111,7 +111,7 @@ export function SubstrateCalculator({ productos, id_producto, onFormulaCalculate
                   <FormLabel>Ingredientes Conocidos</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Ej: 70% viruta, 10kg de alfalfa..."
+                      placeholder="Ej: 70% viruta y 20% salvado, o 'tengo 1kg de paja'."
                       {...field}
                     />
                   </FormControl>
