@@ -110,6 +110,8 @@ export default function MycoSimbiontePage() {
             },
         };
         setNotificationSettings(mergedSettings);
+      } else {
+        setNotificationSettings(defaultNotificationSettings);
       }
       const storedLocation = localStorage.getItem(`fungi-location-${id}`);
       if (storedLocation) {
@@ -183,7 +185,11 @@ export default function MycoSimbiontePage() {
         setDisplayedMessage({ id: Date.now(), text: response });
       } catch (e) {
         console.error("Error calling Myco-Mind AI:", e);
-        setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
+        if (e instanceof Error && e.message.includes("The prompt returned a null output")) {
+             setDisplayedMessage({ id: Date.now(), text: "Red neuronal ocupada. Intenta de nuevo en un momento." });
+        } else {
+             setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
+        }
         setMycoMood('Estrés');
       } finally {
         setMycoState('idle');
@@ -263,7 +269,7 @@ export default function MycoSimbiontePage() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lote, loading, callMycoMind]);
+  }, [lote, loading]); // Remove callMycoMind from dependencies to avoid re-triggering
 
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
@@ -280,8 +286,8 @@ export default function MycoSimbiontePage() {
   }
 
   return (
-    <main className="relative flex h-screen w-full flex-col bg-[#201A30] text-slate-100 font-body overflow-hidden">
-      <header className="absolute top-0 left-0 right-0 z-20 flex flex-wrap items-start justify-between gap-4 p-4">
+    <main className="relative grid grid-rows-[auto_1fr_auto] h-screen w-full bg-[#201A30] text-slate-100 font-body">
+      <header className="z-20 flex flex-wrap items-start justify-between gap-4 p-4">
         <Hud
           age={lote ? getAgeInDays(lote.created_at) : 0}
           mood={mycoMood}
@@ -295,12 +301,12 @@ export default function MycoSimbiontePage() {
         </Button>
       </header>
 
-      <div className="relative flex-1 w-full h-full flex items-center justify-center p-4">
+      <div className="relative w-full h-full flex items-center justify-center p-4 overflow-hidden">
         <NucleoNeural mood={mycoMood} state={mycoState}/>
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
-              className="absolute text-center max-w-2xl p-6 animate-float-up"
+              className="absolute text-center max-w-2xl p-6 animate-float-up z-10"
             >
                 <p className="font-headline text-3xl md:text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] whitespace-pre-wrap leading-tight">
                     {displayedMessage.text}
