@@ -1,12 +1,33 @@
 import type { Lote, Producto, Formulacion } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import type { Database } from './supabaseClient';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// This function creates a Supabase client that can be used in Server Components.
+// It will correctly handle authentication by reading cookies.
+function createServerSupabaseClient(): SupabaseClient<Database> {
+    const cookieStore = cookies();
+    return createServerClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                get(name: string) {
+                    return cookieStore.get(name)?.value;
+                },
+            },
+        }
+    );
+}
 
 // --- PRODUCTOS ---
 
 export const getProductos = async (): Promise<Producto[]> => {
-  if (!supabase) return [];
-  const { data, error } = await supabase.from('productos').select('*').order('nombre', { ascending: true });
+  const supabaseServer = createServerSupabaseClient();
+  const { data, error } = await supabaseServer.from('productos').select('*').order('nombre', { ascending: true });
   if (error) {
     console.error('Error fetching productos:', error.message);
     return []; 
@@ -56,8 +77,8 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 // --- LOTES ---
 
 export const getLotes = async (): Promise<Lote[]> => {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  const supabaseServer = createServerSupabaseClient();
+  const { data, error } = await supabaseServer
     .from('lotes')
     .select('*, productos(*)')
     .order('created_at', { ascending: false });
@@ -70,8 +91,8 @@ export const getLotes = async (): Promise<Lote[]> => {
 };
 
 export const getLoteById = async (id: string): Promise<Lote | null> => {
-   if (!supabase) return null;
-   const { data, error } = await supabase
+   const supabaseServer = createServerSupabaseClient();
+   const { data, error } = await supabaseServer
     .from('lotes')
     .select('*, productos(*)')
     .eq('id', id)
@@ -126,7 +147,11 @@ export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' |
     throw new Error('Failed to update lote.');
   }
   
-  return getLoteById(id); // Refetch to get the joined data
+  // This is a client-side call, so we can't use the server client.
+  // We'll refetch using the standard client. It's better to reconstruct the object
+  // if possible, but this will do for now.
+  const { data: refetchedData } = await supabase.from('lotes').select('*, productos(*)').eq('id', id).single();
+  return refetchedData;
 };
 
 export const deleteLote = async (id: string): Promise<void> => {
@@ -143,8 +168,8 @@ export const deleteLote = async (id: string): Promise<void> => {
 // --- FORMULACIONES ---
 
 export const getFormulaciones = async (): Promise<Formulacion[]> => {
-  if (!supabase) return [];
-  const { data, error } = await supabase.from('formulaciones').select('*').order('puntuacion', { ascending: false });
+  const supabaseServer = createServerSupabaseClient();
+  const { data, error } = await supabaseServer.from('formulaciones').select('*').order('puntuacion', { ascending: false });
   if (error) {
     console.error('Error fetching formulaciones:', error.message);
     return [];
