@@ -19,13 +19,14 @@ export const getCurrentWeather = ai.defineTool(
     outputSchema: z.object({
       temperature: z.number().describe('La temperatura actual en grados Celsius.'),
       humidity: z.number().describe('La humedad relativa actual en porcentaje.'),
-    }),
+    }).nullable(),
   },
   async ({ latitude, longitude }) => {
     try {
       const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m&timezone=auto`);
       if (!response.ok) {
-        throw new Error(`Error fetching weather data: ${response.statusText}`);
+        console.error(`Error fetching weather data: ${response.statusText}`);
+        return null;
       }
       const data = await response.json();
       
@@ -35,9 +36,9 @@ export const getCurrentWeather = ai.defineTool(
       };
     } catch (error) {
         console.error("Failed to fetch weather data:", error);
-        // In case of an error, we can't proceed, so we throw.
-        // The AI will have to inform the user that it couldn't get the weather.
-        throw new Error("No se pudo obtener la información del clima.");
+        // On any failure, return null gracefully.
+        // The AI prompt is designed to handle this null case.
+        return null;
     }
   }
 );
