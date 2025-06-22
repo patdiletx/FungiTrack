@@ -18,7 +18,7 @@ const LoteContextSchema = z.object({
     incidents: z.string().optional().describe("Any registered problems or notes, like contamination."),
 });
 
-export const MycoMindInputSchema = z.object({
+const MycoMindInputSchema = z.object({
   loteContext: LoteContextSchema,
   userMessage: z.string().optional().describe("The user's message to the AI. Can be a question or a statement."),
   interactionType: z.enum(['QUERY', 'HYDRATION', 'INITIALIZE'])
