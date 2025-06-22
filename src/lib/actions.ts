@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './types';
@@ -88,10 +89,7 @@ export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado'
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated to create lote.');
 
-  // Destructure id_formulacion to prevent it from being sent to the DB if the column doesn't exist
-  const { id_formulacion, ...loteDataToInsert } = data;
-
-  const newLoteData = { ...loteDataToInsert, id: uuidv4(), estado: 'En Incubación', id_operador: user.id };
+  const newLoteData = { ...data, id: uuidv4(), estado: 'En Incubación', id_operador: user.id };
 
   const { data: newLote, error } = await supabase
     .from('lotes')
@@ -143,14 +141,9 @@ export const dismissLoteAlertAction = async (loteId: string, reason: string): Pr
     .eq('id', loteId)
     .single();
 
-  if (fetchError) {
+  if (fetchError || !lote) {
     console.error('Error fetching lote for dismissal:', fetchError);
     throw new Error('Could not fetch lote to dismiss alert.');
-  }
-
-  if (!lote) {
-    console.error(`Lote with id ${loteId} not found for dismissal.`);
-    throw new Error(`Lote with id ${loteId} not found.`);
   }
 
   const currentAlerts = lote.dismissed_alerts || [];
@@ -232,10 +225,13 @@ export const updateKitSettingsAction = async (loteId: string, unitIndex: number,
     const supabase = createClient();
     
     // Use upsert to create or update settings for a kit.
-    // onConflict specifies the column(s) to check for a conflict.
+    // We now specify the constraint NAME directly in onConflict for greater robustness.
     const { data, error } = await supabase
         .from('kit_settings')
-        .upsert({ lote_id: loteId, unit_index: unitIndex, ...settings }, { onConflict: 'lote_id,unit_index' })
+        .upsert(
+            { lote_id: loteId, unit_index: unitIndex, ...settings },
+            { onConflict: 'kit_settings_lote_id_unit_index_key' } // Using constraint name
+        )
         .select()
         .single();
         
