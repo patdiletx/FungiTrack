@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Sparkles, Lightbulb, Bot, ArrowRight, Loader2, Check } from 'lucide-react';
+import { AlertTriangle, Sparkles, Lightbulb, Bot, Loader2, Check } from 'lucide-react';
 import type { BatchSummaryOutput } from '@/ai/flows/batch-summary-flow';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
 import { dismissLoteAlertAction } from '@/lib/actions';
 import Link from 'next/link';
@@ -17,17 +16,48 @@ interface DashboardAiSummaryProps {
 }
 
 export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
-  const router = useRouter();
   const { toast } = useToast();
+  const [currentSummary, setCurrentSummary] = useState(summary);
   const [isDismissing, setIsDismissing] = useState<string | null>(null);
 
-  // Use state to manage the summary for optimistic updates
-  const [currentSummary, setCurrentSummary] = useState(summary);
-
-  // Keep state in sync with server-provided props
   useEffect(() => {
     setCurrentSummary(summary);
   }, [summary]);
+
+  const handleDismiss = async (loteId: string, reason: string) => {
+    const alertKey = `${loteId}-${reason}`;
+    setIsDismissing(alertKey);
+
+    const originalSummary = currentSummary;
+    
+    // Optimistic UI update: remove the alert from the state immediately
+    if (currentSummary) {
+      const newAttentionRequired = currentSummary.attentionRequired.filter(
+        (item) => !(item.loteId === loteId && item.reason === reason)
+      );
+      setCurrentSummary({
+        ...currentSummary,
+        attentionRequired: newAttentionRequired,
+      });
+    }
+
+    try {
+      // Perform the server action in the background
+      await dismissLoteAlertAction(loteId, reason);
+      toast({ title: 'Alerta Descartada', description: 'La alerta ha sido marcada como revisada.' });
+    } catch (error) {
+      console.error('Failed to dismiss alert:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo descartar la alerta. El cambio fue revertido.',
+      });
+      // If the server action fails, revert the UI change
+      setCurrentSummary(originalSummary);
+    } finally {
+      setIsDismissing(null);
+    }
+  };
 
   if (!currentSummary) {
     return (
@@ -44,25 +74,6 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
             </CardContent>
         </Card>
     );
-  }
-
-  const handleDismiss = async (loteId: string, reason: string) => {
-    const alertKey = `${loteId}-${reason}`;
-    setIsDismissing(alertKey);
-    try {
-        await dismissLoteAlertAction(loteId, reason);
-        toast({ title: "Alerta Descartada", description: "La alerta ha sido marcada como revisada."});
-        router.refresh(); // This will refetch server data and update the component
-    } catch (error) {
-        console.error("Failed to dismiss alert:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo descartar la alerta.'});
-        setIsDismissing(null);
-    }
-    // No need to set isDismissing to null in finally, as the component will re-render
-  };
-  
-  const handleHighlightClick = (loteId: string) => {
-    router.push(`/panel/lote/${loteId}`);
   }
 
   return (
@@ -131,9 +142,11 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
                                 </AlertTitle>
                                 <AlertDescription>{item.reason}</AlertDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => handleHighlightClick(item.loteId)}>
-                                <ArrowRight className="h-4 w-4" />
-                                <span className="sr-only">Ver Lote</span>
+                            <Button asChild variant="ghost" size="icon">
+                                <Link href={`/panel/lote/${item.loteId}`}>
+                                    <Check className="h-4 w-4" />
+                                    <span className="sr-only">Ver Lote</span>
+                                </Link>
                             </Button>
                         </div>
                     </Alert>
