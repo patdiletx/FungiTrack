@@ -71,6 +71,7 @@ export default function MycoSimbiontePage() {
 
   const [lote, setLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
+  const [localStorageLoaded, setLocalStorageLoaded] = useState(false);
   const [mycoState, setMycoState] = useState<MycoState>('idle');
   const [mycoMood, setMycoMood] = useState<MycoMindOutput['mood']>('Enfoque');
   
@@ -84,6 +85,7 @@ export default function MycoSimbiontePage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const recognitionRef = useRef<any>(null);
+  const initialCallMade = useRef(false);
 
 
   // Load data from localStorage
@@ -119,6 +121,8 @@ export default function MycoSimbiontePage() {
       }
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
+    } finally {
+        setLocalStorageLoaded(true);
     }
   }, [id]);
 
@@ -261,15 +265,17 @@ export default function MycoSimbiontePage() {
     fetchData();
   }, [id]);
 
-  // Initial MycoMind call, fires after lote and coordinates are established
+  // Initial MycoMind call, fires after all data is ready
   useEffect(() => {
-    if (lote && !loading) {
+    // Make the initial call only when both API data and localStorage are loaded, and only once.
+    if (lote && !loading && localStorageLoaded && !initialCallMade.current) {
+      initialCallMade.current = true;
       callMycoMind({ 
         interactionType: 'INITIALIZE', 
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lote, loading]); // Remove callMycoMind from dependencies to avoid re-triggering
+  }, [lote, loading, localStorageLoaded]); // Do not add callMycoMind to avoid re-triggering
 
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
@@ -281,7 +287,7 @@ export default function MycoSimbiontePage() {
     }
   };
 
-  if (loading) {
+  if (loading || !localStorageLoaded) {
     return <div className="flex h-screen w-full items-center justify-center bg-[#201A30]"><Loader2 className="h-10 w-10 animate-spin text-[#A080E0]" /></div>;
   }
 
@@ -301,12 +307,12 @@ export default function MycoSimbiontePage() {
         </Button>
       </header>
 
-      <div className="relative w-full h-full flex items-center justify-center p-4 overflow-hidden">
+      <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
         <NucleoNeural mood={mycoMood} state={mycoState}/>
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
-              className="absolute text-center max-w-2xl p-6 animate-float-up z-10"
+              className="absolute text-center w-full max-w-2xl px-8 animate-float-up z-10"
             >
                 <p className="font-headline text-3xl md:text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] whitespace-pre-wrap leading-tight">
                     {displayedMessage.text}
