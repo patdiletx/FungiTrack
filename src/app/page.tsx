@@ -72,7 +72,6 @@ export default function LoginPage() {
         description: "Has iniciado sesión correctamente.",
       });
       router.push('/panel');
-      router.refresh(); // Ensure layout re-evaluates auth state
     }
   };
 

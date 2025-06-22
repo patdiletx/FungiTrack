@@ -18,23 +18,12 @@ export default function PanelLayout({
   const [isAuth, setIsAuth] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace('/');
-      } else {
-        setIsAuth(true);
-      }
-    };
-
-    checkSession();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+      if (session) {
+        setIsAuth(true);
+      } else {
         setIsAuth(false);
         router.replace('/');
-      } else {
-        setIsAuth(true)
       }
     });
 
