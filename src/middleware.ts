@@ -2,12 +2,15 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  // This `response` object is mutable and will be modified by the `set` and `remove`
+  // methods on the Supabase client.
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
+  // Create a Supabase client that can be used to read and write cookies.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,17 +20,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is updated, update the cookies for the request and response
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+          // If the cookie is set, update the `response` object to set it.
           response.cookies.set({
             name,
             value,
@@ -35,17 +28,7 @@ export async function middleware(request: NextRequest) {
           })
         },
         remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, update the cookies for the request and response
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+          // If the cookie is removed, update the `response` object to delete it.
           response.cookies.set({
             name,
             value: '',
@@ -56,21 +39,25 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const { pathname } = request.nextUrl;
+  // Refresh the session if it's expired.
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // If trying to access a protected route without a session, redirect to login
+  const { pathname } = request.nextUrl
+
+  // If the user is not signed in and is trying to access a protected route,
+  // redirect them to the home page.
   if (!user && pathname.startsWith('/panel')) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/', request.url))
   }
   
-  // If user is logged in and tries to access the login page, redirect to panel
+  // If the user is signed in and is trying to access the home page,
+  // redirect them to the dashboard.
   if (user && pathname === '/') {
-    return NextResponse.redirect(new URL('/panel', request.url));
+    return NextResponse.redirect(new URL('/panel', request.url))
   }
 
-  // Refresh the session cookie
-  return response;
+  // Return the response object to continue with the request.
+  return response
 }
 
 export const config = {
@@ -80,7 +67,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - lote/ (public qr code pages)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|lote).*)',
   ],
 }
