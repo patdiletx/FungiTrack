@@ -4,33 +4,33 @@
 
 @layer base {
   :root {
-    --background: 60 56% 91%;
-    --foreground: 60 10% 20%;
+    --background: 250 30% 15%; /* #201A30 */
+    --foreground: 250 15% 90%;
 
-    --card: 60 30% 96%;
-    --card-foreground: 60 10% 20%;
+    --card: 250 25% 20%;
+    --card-foreground: 250 15% 90%;
  
-    --popover: 60 30% 96%;
-    --popover-foreground: 60 10% 20%;
+    --popover: 250 25% 20%;
+    --popover-foreground: 250 15% 90%;
  
-    --primary: 120 27% 65%;
-    --primary-foreground: 120 25% 15%;
+    --primary: 260 57% 75%; /* #A080E0 */
+    --primary-foreground: 260 50% 15%;
  
-    --secondary: 60 30% 85%;
-    --secondary-foreground: 60 10% 20%;
+    --secondary: 250 20% 30%;
+    --secondary-foreground: 250 15% 90%;
  
-    --muted: 60 30% 88%;
-    --muted-foreground: 60 5% 45%;
+    --muted: 250 20% 25%;
+    --muted-foreground: 250 10% 60%;
  
-    --accent: 56 38% 58%;
-    --accent-foreground: 56 38% 15%;
+    --accent: 212 82% 75%; /* #70B0F0 */
+    --accent-foreground: 212 82% 15%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 60 20% 80%;
-    --input: 60 20% 80%;
-    --ring: 120 27% 55%;
+    --border: 250 20% 30%;
+    --input: 250 20% 30%;
+    --ring: 260 57% 75%;
  
     --radius: 0.5rem;
 
@@ -40,53 +40,53 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
-    --sidebar-background: 60 40% 94%;
-    --sidebar-foreground: 60 10% 20%;
-    --sidebar-primary: 120 27% 65%;
-    --sidebar-primary-foreground: 120 25% 15%;
-    --sidebar-accent: 60 30% 88%;
-    --sidebar-accent-foreground: 60 10% 20%;
-    --sidebar-border: 60 20% 80%;
-    --sidebar-ring: 120 27% 55%;
+    --sidebar-background: 250 28% 12%;
+    --sidebar-foreground: 250 15% 90%;
+    --sidebar-primary: 260 57% 75%;
+    --sidebar-primary-foreground: 260 50% 15%;
+    --sidebar-accent: 250 20% 30%;
+    --sidebar-accent-foreground: 250 15% 90%;
+    --sidebar-border: 250 20% 25%;
+    --sidebar-ring: 260 57% 75%;
   }
  
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 250 30% 15%; /* #201A30 */
+    --foreground: 250 15% 90%;
  
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 250 25% 20%;
+    --card-foreground: 250 15% 90%;
  
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 250 25% 20%;
+    --popover-foreground: 250 15% 90%;
  
-    --primary: 120 27% 65%;
-    --primary-foreground: 120 25% 15%;
+    --primary: 260 57% 75%; /* #A080E0 */
+    --primary-foreground: 260 50% 15%;
  
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 250 20% 30%;
+    --secondary-foreground: 250 15% 90%;
  
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 250 20% 25%;
+    --muted-foreground: 250 10% 60%;
  
-    --accent: 56 38% 58%;
-    --accent-foreground: 56 38% 15%;
+    --accent: 212 82% 75%; /* #70B0F0 */
+    --accent-foreground: 212 82% 15%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 120 27% 55%;
+    --border: 250 20% 30%;
+    --input: 250 20% 30%;
+    --ring: 260 57% 75%;
 
-    --sidebar-background: 240 5% 10%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 120 27% 65%;
-    --sidebar-primary-foreground: 120 25% 15%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 120 27% 55%;
+    --sidebar-background: 250 28% 12%;
+    --sidebar-foreground: 250 15% 90%;
+    --sidebar-primary: 260 57% 75%;
+    --sidebar-primary-foreground: 260 50% 15%;
+    --sidebar-accent: 250 20% 30%;
+    --sidebar-accent-foreground: 250 15% 90%;
+    --sidebar-border: 250 20% 25%;
+    --sidebar-ring: 260 57% 75%;
   }
 }
  
@@ -99,98 +99,31 @@
   }
 }
 
-/* Myco-Mind AI Network Animations */
 @layer utilities {
-    .network-paths, .network-nodes {
-        transition: all 0.5s ease-in-out;
-    }
-    
-    .network-paths {
-        animation: pulse 8s ease-in-out infinite;
-    }
-
-    .network-nodes circle {
-        animation: node-pulse 8s ease-in-out infinite alternate;
-    }
-    .network-nodes circle:nth-child(2) { animation-delay: -1s; }
-    .network-nodes circle:nth-child(3) { animation-delay: -2s; }
-    .network-nodes circle:nth-child(4) { animation-delay: -3s; }
-    .network-nodes circle:nth-child(5) { animation-delay: -4s; }
-    .network-nodes circle:nth-child(6) { animation-delay: -5s; }
-
-    /* States */
-    [data-state='listening'] .listening-glow {
-        opacity: 1;
+    @keyframes float-up-and-fade {
+        0% {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        10% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        90% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-20px) scale(1.05);
+        }
     }
 
-    [data-state='thinking'] .network-paths {
-        animation: thinking-pulse 1s ease-in-out infinite;
-    }
-    [data-state='thinking'] .network-nodes circle {
-        animation: thinking-node-pulse 0.5s ease-in-out infinite alternate;
-    }
-
-    [data-state='hydrating'] .network-paths,
-    [data-state='hydrating'] .network-nodes {
-        stroke: hsl(195, 100%, 50%);
-        fill: hsl(195, 100%, 50%);
-        animation: hydrating-burst 1.5s ease-out forwards;
-    }
-    
-    [data-state='error'] .network-paths,
-    [data-state='error'] .network-nodes {
-        stroke: hsl(var(--destructive));
-        fill: hsl(var(--destructive));
-        animation: error-flicker 2s ease-in-out infinite;
+    .animate-float-up {
+        animation: float-up-and-fade 15s ease-in-out forwards;
     }
 }
 
-
-@keyframes pulse {
-  0% {
-    stroke-opacity: 0.7;
-    transform: scale(1);
-    transform-origin: center;
-  }
-  50% {
-    stroke-opacity: 1;
-    transform: scale(1.02);
-    transform-origin: center;
-  }
-  100% {
-    stroke-opacity: 0.7;
-    transform: scale(1);
-    transform-origin: center;
-  }
-}
-
-@keyframes node-pulse {
-  from { opacity: 0.8; }
-  to { opacity: 1; }
-}
-
-
-@keyframes thinking-pulse {
-  0% { stroke-opacity: 0.5; }
-  50% { stroke-opacity: 1; }
-  100% { stroke-opacity: 0.5; }
-}
-
-@keyframes thinking-node-pulse {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
-}
-
-@keyframes hydrating-burst {
-    0% { transform: scale(1); opacity: 1; transform-origin: center;}
-    50% { transform: scale(1.1); opacity: 0.8; transform-origin: center;}
-    100% { transform: scale(1); opacity: 1; transform-origin: center;}
-}
-
-@keyframes error-flicker {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
 
 @media print {
   body * {

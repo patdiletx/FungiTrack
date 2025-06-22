@@ -3,20 +3,25 @@
 import { getLoteByIdAction } from '@/lib/actions';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mic, Loader2, MicOff } from 'lucide-react';
+import { Mic, Loader2, Zap, BrainCircuit, X } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote } from '@/lib/types';
-import { mycoMind, type MycoMindInput } from '@/ai/flows/myco-mind-flow';
-import { MycoSoundWave } from '@/components/MycoSoundWave';
+import { mycoMind, type MycoMindInput, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
+import { textToSpeech } from '@/ai/flows/text-to-speech-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { Hud } from '@/components/Simbionte/Hud';
+import { GeneticPathwaysPanel } from '@/components/Simbionte/GeneticPathwaysPanel';
+import { NucleoNeural } from '@/components/Simbionte/NucleoNeural';
 
-export type NetworkState = 'idle' | 'listening' | 'thinking' | 'hydrating' | 'error';
+export type SimbionteData = {
+    energy: number;
+    unlockedPaths: string[];
+};
+type MycoState = 'idle' | 'listening' | 'thinking';
 type DisplayMessage = {
     id: number;
     text: string;
-    sender: 'user' | 'myco';
 };
 
 const getAgeInDays = (creationDate: string | Date): number => {
@@ -26,59 +31,71 @@ const getAgeInDays = (creationDate: string | Date): number => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
-export default function MycoMindPage() {
+export default function MycoSimbiontePage() {
   const params = useParams();
   const id = params.id as string;
   const { toast } = useToast();
 
   const [lote, setLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
-  const [networkState, setNetworkState] = useState<NetworkState>('idle');
-  const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
-  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
-  const [micPermission, setMicPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
-  const [isListening, setIsListening] = useState(false);
+  const [mycoState, setMycoState] = useState<MycoState>('idle');
+  const [mycoMood, setMycoMood] = useState<MycoMindOutput['mood']>('Enfoque');
+  const [simbionteData, setSimbionteData] = useState<SimbionteData>({ energy: 0, unlockedPaths: [] });
+  const [panelOpen, setPanelOpen] = useState(false);
   
+  const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const recognitionRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-
+  // Load Simbionte data from localStorage
   useEffect(() => {
-    if (displayedMessage && messageTimeoutRef.current) {
-        clearTimeout(messageTimeoutRef.current);
+    if (!id) return;
+    try {
+      const storedData = localStorage.getItem(`simbionte-data-${id}`);
+      if (storedData) {
+        setSimbionteData(JSON.parse(storedData));
+      }
+    } catch (e) {
+      console.error("Failed to load simbionte data from localStorage", e);
     }
-    if (displayedMessage) {
-        messageTimeoutRef.current = setTimeout(() => {
-            setDisplayedMessage(null);
-        }, 15000); // Message visible for 15 seconds
+  }, [id]);
+
+  // Save Simbionte data to localStorage
+  const saveSimbionteData = useCallback((data: SimbionteData) => {
+    if (!id) return;
+    try {
+      localStorage.setItem(`simbionte-data-${id}`, JSON.stringify(data));
+      setSimbionteData(data);
+    } catch (e) {
+      console.error("Failed to save simbionte data to localStorage", e);
     }
-    return () => {
-        if (messageTimeoutRef.current) {
-            clearTimeout(messageTimeoutRef.current);
-        }
-    }
-  }, [displayedMessage]);
+  }, [id]);
 
 
-  const callMycoMind = useCallback(async (input: MycoMindInput, showMessage: boolean) => {
-      setNetworkState('thinking');
+  const callMycoMind = useCallback(async (input: MycoMindInput) => {
+      setMycoState('thinking');
       try {
-        const { response } = await mycoMind(input);
-        if (showMessage) {
-            setDisplayedMessage({ id: Date.now(), text: response, sender: 'myco' });
+        const { response, mood } = await mycoMind(input);
+        setMycoMood(mood);
+        setDisplayedMessage({ id: Date.now(), text: response });
+        
+        const { audioDataUri } = await textToSpeech(response);
+        if (audioRef.current) {
+            audioRef.current.src = audioDataUri;
+            audioRef.current.play().catch(e => console.error("Audio playback failed", e));
         }
-        setNetworkState(lote?.estado === 'Contaminado' ? 'error' : 'idle');
+
       } catch (e) {
         console.error("Error calling Myco-Mind AI:", e);
-        if (showMessage) {
-            setDisplayedMessage({ id: Date.now(), text: "Mis filamentos... estática... no puedo comunicarme claramente ahora.", sender: 'myco' });
-        }
-        setNetworkState('error');
+        setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
+        setMycoMood('Estrés');
+      } finally {
+        setMycoState('idle');
       }
-  }, [lote]);
+  }, []);
 
-
+  // Speech Recognition Setup
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -91,28 +108,18 @@ export default function MycoMindPage() {
       });
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setNetworkState('listening');
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      setNetworkState(lote?.estado === 'Contaminado' ? 'error' : 'idle');
-    };
+    recognition.onstart = () => setMycoState('listening');
+    recognition.onend = () => setMycoState('idle');
 
     recognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
       if (!transcript.trim() || !lote) return;
-
-      setDisplayedMessage({ id: Date.now(), text: `"${transcript}"`, sender: 'user' });
-
+      
       await callMycoMind({
           interactionType: 'QUERY',
           userMessage: transcript,
@@ -122,61 +129,16 @@ export default function MycoMindPage() {
               status: lote.estado,
               incidents: lote.incidencias || undefined,
           }
-      }, true);
+      });
     };
-    
     recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setNetworkState('error');
-        let errorDescription = 'Ocurrió un error al procesar tu voz.';
-        if (event.error === 'no-speech') {
-            errorDescription = 'No detecté ninguna voz. Por favor, intenta de nuevo.'
-        } else if (event.error === 'not-allowed') {
-            errorDescription = 'El acceso al micrófono fue bloqueado.'
-        }
-        setDisplayedMessage({ id: Date.now(), text: errorDescription, sender: 'myco'});
+        setMycoState('idle');
+        toast({ variant: "destructive", title: "Error de voz", description: event.error });
     }
-
     recognitionRef.current = recognition;
   }, [lote, callMycoMind, toast]);
 
-
-  useEffect(() => {
-    const getMicPermission = async () => {
-        try {
-            if (!navigator.mediaDevices?.getUserMedia) {
-                throw new Error('La API de medios no es soportada en este navegador.');
-            }
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            
-            const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-            audioContextRef.current = context;
-            const source = context.createMediaStreamSource(stream);
-            const analyser = context.createAnalyser();
-            analyser.smoothingTimeConstant = 0.8;
-            source.connect(analyser);
-            
-            setAnalyserNode(analyser);
-            setMicPermission('granted');
-
-        } catch (err) {
-            console.error("Error accessing microphone:", err);
-            setMicPermission('denied');
-            toast({
-                variant: 'destructive',
-                title: 'Acceso al Micrófono Denegado',
-                description: 'La interacción por voz y la visualización de sonido requieren acceso al micrófono.',
-            });
-        }
-    };
-    getMicPermission();
-
-    return () => {
-        audioContextRef.current?.close().catch(console.error);
-    }
-  }, [toast]);
-
-
+  // Initial Data Fetch
   useEffect(() => {
     if (!id) return;
     async function fetchData() {
@@ -186,121 +148,98 @@ export default function MycoMindPage() {
         notFound();
       }
       setLote(loteData);
-      setNetworkState(loteData.estado === 'Contaminado' ? 'error' : 'idle');
       
-      // Warm up the AI but don't show the initial message.
-      await callMycoMind({ 
+      const { mood, response } = await mycoMind({ 
         interactionType: 'INITIALIZE', 
         loteContext: {
             productName: loteData.productos.nombre,
             ageInDays: getAgeInDays(loteData.created_at),
             status: loteData.estado,
             incidents: loteData.incidencias || undefined,
-      }}, false);
+      }});
+      setMycoMood(mood);
+      setDisplayedMessage({ id: Date.now(), text: response });
 
       setLoading(false);
     }
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleToggleListening = () => {
-    if (networkState === 'thinking' || micPermission !== 'granted' || !recognitionRef.current) return;
-
-    if (isListening) {
+    if (mycoState !== 'idle' || !recognitionRef.current) return;
+    
+    if (mycoState === 'listening') {
         recognitionRef.current.stop();
     } else {
         recognitionRef.current.start();
     }
   };
 
-  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-        case 'En Incubación':
-        case 'En Fructificación':
-            return 'secondary';
-        case 'Listo para Venta':
-        case 'Vendido':
-            return 'default';
-        case 'Contaminado':
-            return 'destructive';
-        default:
-            return 'outline';
-    }
-  };
-
   if (loading) {
-    return <div className="flex h-screen w-full items-center justify-center bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+    return <div className="flex h-screen w-full items-center justify-center bg-[#201A30]"><Loader2 className="h-10 w-10 animate-spin text-[#A080E0]" /></div>;
   }
 
   return (
-    <main className="flex h-screen w-full flex-col bg-black text-slate-100 font-code overflow-hidden">
-      
-      <header className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-20">
-        <div className="text-left">
-            <h1 className="font-headline text-2xl md:text-3xl text-white">{lote?.productos?.nombre}</h1>
-            <div className="flex items-center flex-wrap gap-2 mt-2">
-                <Badge variant={getStatusVariant(lote?.estado || '')}>{lote?.estado}</Badge>
-                {lote && <Badge variant="outline" className="border-white/30 text-white/80">{getAgeInDays(lote.created_at)} días de edad</Badge>}
-            </div>
-        </div>
-        <div className="flex items-center gap-2">
-            {micPermission === 'pending' && <Loader2 className="h-5 w-5 animate-spin text-gray-400" />}
-            {micPermission === 'granted' && <Mic className="h-5 w-5 text-green-400" />}
-            {micPermission === 'denied' && <MicOff className="h-5 w-5 text-red-400" />}
-        </div>
-      </header>
-      
-      <div className="relative flex-1 w-full h-full flex items-center justify-center p-4">
-        <MycoSoundWave
-            analyser={analyserNode}
-            state={networkState}
-            className="w-full h-full max-w-4xl max-h-4xl"
-        />
+    <main className="flex h-screen w-full flex-col bg-[#201A30] text-slate-100 font-body overflow-hidden">
+      <audio ref={audioRef} className="hidden" />
 
+      <Hud 
+        age={lote ? getAgeInDays(lote.created_at) : 0} 
+        mood={mycoMood} 
+        neuronalEnergy={simbionteData.energy} 
+      />
+
+      <div className="absolute top-4 right-4 z-20">
+         <Button variant="ghost" onClick={() => setPanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white">
+            <BrainCircuit className="mr-2" /> Vías Genéticas
+        </Button>
+      </div>
+
+      <div className="relative flex-1 w-full h-full flex items-center justify-center p-4">
+        <NucleoNeural mood={mycoMood} state={mycoState}/>
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
-              className={cn(
-                "absolute text-center max-w-lg p-4 animate-in fade-in-50 duration-500",
-                {"animate-out fade-out-50 duration-1000 fill-mode-forwards": !displayedMessage}
-              )}
+              className="absolute text-center max-w-2xl p-6 animate-float-up"
             >
-                <p className={cn("font-headline text-2xl md:text-4xl drop-shadow-lg whitespace-pre-wrap", 
-                    displayedMessage.sender === 'user' ? "text-primary" : "text-white"
-                )}>
+                <p className="font-headline text-3xl md:text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] whitespace-pre-wrap leading-tight">
                     {displayedMessage.text}
                 </p>
             </div>
         )}
       </div>
 
-      <footer className="mt-auto flex flex-col items-center justify-center p-4 md:p-6 flex-shrink-0 z-10">
+      <footer className="w-full flex flex-col items-center justify-center p-4 md:p-6 flex-shrink-0 z-10">
           <Button
               size="icon"
               onClick={handleToggleListening}
-              disabled={networkState === 'thinking' || micPermission !== 'granted'}
+              disabled={mycoState === 'thinking'}
               className={cn(
-                  "rounded-full w-20 h-20 border-2 transition-all duration-300 relative",
-                  isListening ? "border-red-500 bg-red-500/20 text-red-500" : "border-primary bg-primary/10 text-primary",
-                  "disabled:border-muted disabled:bg-muted/10 disabled:text-muted-foreground"
+                  "rounded-full w-24 h-24 border-4 transition-all duration-300 relative bg-black/30 backdrop-blur-sm",
+                  mycoState === 'listening' ? "border-red-500" : "border-white/20 hover:border-white/50",
+                  "disabled:border-slate-500 disabled:opacity-50"
               )}
               >
-              <Mic className="h-8 w-8" />
-              {isListening && (
-                  <span className="absolute h-full w-full rounded-full bg-red-500/50 animate-ping"></span>
-              )}
+              {mycoState === 'listening' 
+                ? <span className="h-8 w-8 rounded-md bg-red-500 animate-pulse"></span>
+                : <Mic className="h-10 w-10 text-white/80" />
+              }
+              {mycoState === 'thinking' && <Loader2 className='absolute h-10 w-10 animate-spin text-white/80'/>}
           </Button>
-          <p className="mt-2 h-4 text-xs text-muted-foreground">
-            {micPermission === 'denied'
-              ? 'Permiso de micrófono denegado'
-              : networkState === 'thinking'
-              ? 'Myco está procesando...'
-              : isListening
-              ? 'Escuchando...'
-              : 'Presiona para hablar'}
-          </p>
       </footer>
+      
+       <GeneticPathwaysPanel 
+            isOpen={panelOpen} 
+            onClose={() => setPanelOpen(false)}
+            simbionteData={simbionteData}
+            onUnlock={(pathId, cost) => {
+                const newData = {
+                    energy: simbionteData.energy - cost,
+                    unlockedPaths: [...simbionteData.unlockedPaths, pathId]
+                };
+                saveSimbionteData(newData);
+            }}
+       />
     </main>
   );
 }

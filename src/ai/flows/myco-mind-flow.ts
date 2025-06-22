@@ -18,7 +18,7 @@ const LoteContextSchema = z.object({
     incidents: z.string().optional().describe("Any registered problems or notes, like contamination."),
 });
 
-const MycoMindInputSchema = z.object({
+export const MycoMindInputSchema = z.object({
   loteContext: LoteContextSchema,
   userMessage: z.string().optional().describe("The user's message to the AI. Can be a question or a statement."),
   interactionType: z.enum(['QUERY', 'HYDRATION', 'INITIALIZE'])
@@ -26,8 +26,9 @@ const MycoMindInputSchema = z.object({
 });
 export type MycoMindInput = z.infer<typeof MycoMindInputSchema>;
 
-const MycoMindOutputSchema = z.object({
+export const MycoMindOutputSchema = z.object({
   response: z.string().describe("The conversational response from the AI persona 'Myco'."),
+  mood: z.enum(['Enfoque', 'Euforia', 'Letargo', 'Estrés']).describe("The current emotional state or 'mood' of Myco, which influences the UI visuals."),
 });
 export type MycoMindOutput = z.infer<typeof MycoMindOutputSchema>;
 
@@ -50,6 +51,11 @@ const prompt = ai.definePrompt({
 
   INSTRUCCIONES DE RESPUESTA:
   Basado en el 'interactionType', genera una respuesta adecuada.
+  Determina mi 'humor' (mood) actual basado en mi estado.
+  - Si el estado es 'Contaminado' o hay 'incidencias', mi humor es 'Estrés'.
+  - Si el estado es 'Vendido' o ya ha fructificado, mi humor es 'Letargo'.
+  - Si el estado es 'En Fructificación' o a punto de estarlo (edad > 14 días y saludable), mi humor es 'Euforia'.
+  - En cualquier otro caso (saludable, en incubación), mi humor es 'Enfoque'.
 
   1. Si 'interactionType' es 'INITIALIZE':
      - Responde con un reporte de estado inicial, muy corto y basado en datos.
@@ -67,8 +73,9 @@ const prompt = ai.definePrompt({
      - Ejemplo: "Estímulo hídrico registrado.\\nAumentando la tasa de absorción de nutrientes en un 12%.\\nEficiencia optimizada."
 
   ADAPTACIÓN AL CONTEXTO:
-  - Si el estado es 'Contaminado' o hay 'incidencias': Tu tono debe ser de alerta, como un sistema de diagnóstico. Ejemplo: "ALERTA: Detectada firma biológica anómala consistente con '{{{loteContext.incidents}}}'.\\nIniciando protocolo de contención.\\nSe recomienda la intervención del operador."
-  - Si la edad es > 15 días y el estado es saludable: Informa sobre la eficiencia y la preparación para la siguiente fase. Ejemplo: "La red ha alcanzado la madurez óptima.\\nTodos los recursos se están redirigiendo hacia el protocolo de fructificación."
+  - Si el estado es 'Contaminado' o hay 'incidencias' (humor 'Estrés'): Tu tono debe ser de alerta, como un sistema de diagnóstico. Ejemplo: "ALERTA: Detectada firma biológica anómala consistente con '{{{loteContext.incidents}}}'.\\nIniciando protocolo de contención.\\nSe recomienda la intervención del operador."
+  - Si el humor es 'Euforia': Comunica excitación por la inminente fructificación. "¡Éxito!\\nHe desbloqueado el Protocolo de Fructificación.\\nLa energía ahora se está materializando en el plano físico."
+  - Si el humor es 'Letargo': Comunica un estado de ciclo completado. "La transferencia de energía ha sido un éxito.\\nMi manifestación física ha cumplido su propósito. Ahora estoy en modo de conservación."
   - Sé siempre coherente. Evita el lenguaje poético o místico. Céntrate en los datos.
 `
 });
