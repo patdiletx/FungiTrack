@@ -175,7 +175,7 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: lote.estado,
-              incidents: lote.incidencias || undefined,
+              incidencias: lote.incidencias || undefined,
               latitude: coordinates?.latitude,
               longitude: coordinates?.longitude,
             }
@@ -292,7 +292,9 @@ export default function MycoSimbiontePage() {
   }
 
   return (
-    <main className="relative grid grid-rows-[auto_1fr_auto] h-screen w-full bg-[#201A30] text-slate-100 font-body">
+    <main className="relative flex flex-col h-screen w-full bg-[#201A30] text-slate-100 font-body overflow-hidden">
+      <NucleoNeural mood={mycoMood} state={mycoState} className="z-0" />
+      
       <header className="z-20 flex flex-wrap items-start justify-between gap-4 p-4">
         <Hud
           age={lote ? getAgeInDays(lote.created_at) : 0}
@@ -307,12 +309,11 @@ export default function MycoSimbiontePage() {
         </Button>
       </header>
 
-      <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-        <NucleoNeural mood={mycoMood} state={mycoState}/>
+      <div className="relative flex-1 w-full flex items-center justify-center z-10">
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
-              className="absolute text-center w-full max-w-2xl px-8 animate-float-up z-10"
+              className="text-center w-full max-w-2xl px-8 animate-float-up"
             >
                 <p className="font-headline text-3xl md:text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] whitespace-pre-wrap leading-tight">
                     {displayedMessage.text}
