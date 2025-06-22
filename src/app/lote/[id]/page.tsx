@@ -124,8 +124,8 @@ export default function MycoSimbiontePage() {
     }
   };
   
-  const onCoordinatesChange = async (coords: Coordinates) => {
-    setCoordinates(coords); // Update local state immediately for UI feedback
+  const onCoordinatesChange = useCallback(async (coords: Coordinates) => {
+    setCoordinates(coords);
     
     try {
         await updateKitSettingsAction(id, { coordinates: coords });
@@ -144,14 +144,13 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: getDynamicStatus(lote),
-              // Use the INCIDENTS from the user's kit settings, not the producer's lot
               incidents: undefined,
               latitude: coords.latitude,
               longitude: coords.longitude,
             }
         });
     }
-  };
+  }, [id, lote, handleAiInteraction]);
 
   // Speech Recognition Setup
   useEffect(() => {
@@ -205,24 +204,27 @@ export default function MycoSimbiontePage() {
 
     async function initializePage() {
         setLoading(true);
+        setMycoState('thinking');
 
+        // Step 1: Fetch all data
         const loteData = await getLoteByIdAction(id);
 
-        if (!isMounted || !loteData || !loteData.productos) {
-            if (isMounted) notFound();
+        if (!isMounted) return;
+        if (!loteData || !loteData.productos) {
+            notFound();
             return;
         }
 
+        // Step 2: Populate base state
         const settings = loteData.kit_settings?.[0];
         const coords = settings?.coordinates || null;
         const lastResponse = settings?.last_ai_response || null;
 
-        // Set all state from fetched data
         setLote(loteData);
         setPhotoHistory(settings?.photo_history || []);
         setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
         setCoordinates(coords);
-
+        
         try {
             const storedKitsRaw = localStorage.getItem('fungi-my-kits');
             let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
@@ -230,23 +232,24 @@ export default function MycoSimbiontePage() {
                 kits.push({ id: loteData.id, name: loteData.productos.nombre });
                 localStorage.setItem('fungi-my-kits', JSON.stringify(kits));
             }
-            setMyKits(kits);
+            if (isMounted) setMyKits(kits);
         } catch (e) {
             console.error("Failed to update kit list in localStorage", e);
         }
         
+        // Step 3: Decide if a fresh AI call is needed
         const needsFreshCall = !lastResponse || (!!coords && !lastResponse.weather);
 
         if (needsFreshCall) {
-            setMycoState('thinking');
             try {
+                // Step 4a: Make the AI call with guaranteed fresh data
                 const mycoMindInput: MycoMindInput = {
                     interactionType: 'INITIALIZE',
                     loteContext: {
                         productName: loteData.productos!.nombre,
                         ageInDays: getAgeInDays(loteData.created_at),
                         status: getDynamicStatus(loteData),
-                        incidents: undefined, // User incidents, not producer's
+                        incidents: undefined, 
                         latitude: coords?.latitude,
                         longitude: coords?.longitude,
                     }
@@ -256,6 +259,7 @@ export default function MycoSimbiontePage() {
 
                 await updateKitSettingsAction(id, { last_ai_response: aiResponse });
                 
+                // Step 4b: Update the UI with the new AI response
                 if(isMounted) {
                     const { response, mood, weather: weatherData } = aiResponse;
                     setMycoMood(mood);
@@ -270,12 +274,15 @@ export default function MycoSimbiontePage() {
                 }
             }
         } else {
-            // Restore from cache is safe
-            setMycoMood(lastResponse.mood);
-            setWeather(lastResponse.weather ?? null);
-            setDisplayedMessage({ id: Date.now(), text: lastResponse.response });
+            // Step 4c: Restore from the valid cached response
+            if (isMounted) {
+                setMycoMood(lastResponse.mood);
+                setWeather(lastResponse.weather ?? null);
+                setDisplayedMessage({ id: Date.now(), text: lastResponse.response });
+            }
         }
 
+        // Step 5: Finalize loading state
         if (isMounted) {
             setLoading(false);
             setMycoState('idle');
@@ -339,7 +346,7 @@ export default function MycoSimbiontePage() {
   }
 
   return (
-    <main className="relative flex flex-col h-screen w-full bg-[#201A30] text-slate-100 font-body overflow-hidden">
+    <main className="relative flex flex-col h-screen w-full bg-[#201A30] text-slate-100 font-body">
       <NucleoNeural mood={mycoMood} state={mycoState} className="z-0" />
       
       <header className="flex-shrink-0 z-20 flex flex-wrap items-start justify-between gap-4 p-4">
@@ -356,11 +363,11 @@ export default function MycoSimbiontePage() {
         </Button>
       </header>
 
-      <div className="flex-grow w-full flex items-center justify-center z-10 px-8">
+      <div className="flex-grow w-full flex flex-col justify-center z-10 px-8 py-4 overflow-y-auto min-h-0">
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
-              className="text-center w-full max-w-2xl animate-float-up"
+              className="text-center w-full max-w-2xl animate-float-up mx-auto"
             >
                 <p className="font-headline text-3xl md:text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] whitespace-pre-wrap leading-tight">
                     {displayedMessage.text}
@@ -368,7 +375,9 @@ export default function MycoSimbiontePage() {
             </div>
         )}
          {loading && !displayedMessage && (
-             <Loader2 className="h-10 w-10 animate-spin text-[#A080E0]/50" />
+             <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-[#A080E0]/50" />
+             </div>
          )}
       </div>
 
