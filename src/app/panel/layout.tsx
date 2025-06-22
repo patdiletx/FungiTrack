@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { PanelSidebar } from '@/components/panel/PanelSidebar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function PanelLayout({
   children,
@@ -15,18 +16,32 @@ export default function PanelLayout({
   const [isAuth, setIsAuth] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
-    try {
-        const authStatus = localStorage.getItem('fungi-track-auth') === 'true';
-        if (!authStatus) {
-            router.replace('/');
-        }
-        setIsAuth(authStatus);
-    } catch (error) {
-        console.error("Could not access localStorage. Assuming not authenticated.");
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         router.replace('/');
+      } else {
+        setIsAuth(true);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
         setIsAuth(false);
-    }
+        router.replace('/');
+      } else {
+        setIsAuth(true)
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+
   }, [router]);
+
 
   if (isAuth === undefined) {
     return (

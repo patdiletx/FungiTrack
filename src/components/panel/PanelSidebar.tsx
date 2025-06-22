@@ -15,17 +15,14 @@ import { Button } from '@/components/ui/button';
 import { LogOut, LayoutDashboard, PlusCircle, Box } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export function PanelSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem('fungi-track-auth');
-    } catch (error) {
-        console.error("Could not access localStorage.");
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     router.push('/');
   };
 
