@@ -23,7 +23,6 @@ interface SubstrateCalculatorProps {
 
 const calculatorSchema = z.object({
   knownIngredients: z.string().min(5, { message: 'Describe al menos un ingrediente.' }),
-  totalWeightKg: z.coerce.number().positive('El peso debe ser un número positivo.'),
 });
 
 export function SubstrateCalculator({ productos, id_producto, onFormulaCalculated }: SubstrateCalculatorProps) {
@@ -35,7 +34,6 @@ export function SubstrateCalculator({ productos, id_producto, onFormulaCalculate
     resolver: zodResolver(calculatorSchema),
     defaultValues: {
       knownIngredients: '1kg de paja de trigo',
-      totalWeightKg: 10,
     },
   });
 
@@ -119,19 +117,13 @@ export function SubstrateCalculator({ productos, id_producto, onFormulaCalculate
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="totalWeightKg"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Peso Seco Total del Lote (kg)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
+            {!id_producto && (
+              <p className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md">
+                Por favor, selecciona primero un producto en el menú de arriba para activar el cálculo.
+              </p>
+            )}
+
             <Button type="button" onClick={form.handleSubmit(handleCalculate)} disabled={loading || !id_producto} className="w-full">
               {loading ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
               Calcular y Añadir a Notas

@@ -12,8 +12,8 @@ import {z} from 'genkit';
 
 const CalculateSubstrateInputSchema = z.object({
   productName: z.string().describe('The name of the mushroom product (e.g., "Oyster Mushroom", "Shiitake").'),
-  knownIngredients: z.string().describe('Una descripción en texto de los ingredientes conocidos, usando porcentajes o pesos absolutos. Ej: "70% viruta, 20% salvado" o "Tengo 5kg de paja y 1kg de alfalfa seca".'),
-  totalWeightKg: z.number().positive().describe('The total dry weight in kilograms for the final substrate mix.'),
+  knownIngredients: z.string().describe('A text description of the known ingredients, using percentages or absolute weights. E.g., "70% wood chips, 20% bran" or "I have 5kg straw and 1kg dry alfalfa".'),
+  totalWeightKg: z.number().positive().optional().describe('The desired total dry weight in kilograms for the final substrate mix. If not provided, the AI should infer it from the known ingredients.'),
 });
 export type CalculateSubstrateInput = z.infer<typeof CalculateSubstrateInputSchema>;
 
@@ -41,19 +41,25 @@ const prompt = ai.definePrompt({
 
 El operador te dará:
 - El tipo de hongo a cultivar: {{{productName}}}
-- El peso seco total que necesita para el lote: {{{totalWeightKg}}} kg.
-- Una descripción de los ingredientes que ya tiene (ingredientes conocidos): {{{knownIngredients}}}.
+- Los ingredientes que ya tiene (ingredientes conocidos): {{{knownIngredients}}}.
+- Opcionalmente, podría darte el peso seco total que necesita para el lote: {{{totalWeightKg}}} kg.
 
 **Tu Misión:**
-1.  **Interpreta la Entrada:** Analiza los 'ingredientes conocidos'. Pueden estar en porcentajes (ej: "70% viruta") o en pesos absolutos (ej: "Tengo 1kg de alfalfa").
-2.  **Calcula Porcentajes:** Si se dan pesos, conviértelos a un porcentaje del 'peso seco total'. Por ejemplo, si el lote es de 10kg y el ingrediente es "1kg de alfalfa", eso es el 10% de la mezcla.
-3.  **Completa la Fórmula:** Usando tu conocimiento experto sobre el hongo \`{{{productName}}}\`, añade los ingredientes que faltan para crear una receta óptima. La suma de los porcentajes de *todos* los ingredientes (los conocidos y los que añadas) DEBE ser exactamente 100%.
-4.  **Calcula Pesos Finales:** Para CADA ingrediente en la fórmula final y completa, calcula su peso exacto en kg para alcanzar el 'peso seco total'.
-5.  **Genera Notas:** Proporciona notas claras. **Es crucial que incluyas la cantidad total de agua necesaria para la hidratación** y cualquier otra recomendación importante.
+1.  **Determina el Peso Total del Lote:**
+    *   **Si se proporciona \`totalWeightKg\`**, úsalo como el objetivo final del peso seco.
+    *   **Si NO se proporciona \`totalWeightKg\`**, DEBES inferirlo a partir de los 'ingredientes conocidos'. Usa tu conocimiento experto.
+        *   Ejemplo de Inferencia: Si el usuario dice "1 kg de alfalfa" para "Hongo Ostra", y tú sabes que la alfalfa suele ser un 10% de la receta, entonces el peso total del lote es 10 kg.
+        *   Si el usuario da varios pesos ("5kg de paja y 1kg de afrecho"), el peso total mínimo es la suma de esos ingredientes. Completa la receta basándote en ese total inferido o un estándar de la industria, lo que sea más lógico.
+
+2.  **Completa la Fórmula:** Basado en el peso total (ya sea proporcionado o inferido), añade los ingredientes que faltan para crear una receta óptima para \`{{{productName}}}\`. La suma de los porcentajes de *todos* los ingredientes debe ser exactamente 100%.
+
+3.  **Calcula Pesos Finales:** Para CADA ingrediente en la fórmula final, calcula su peso exacto en kg.
+
+4.  **Genera Notas:** Proporciona notas claras. **Es crucial que incluyas la cantidad total de agua necesaria para la hidratación** y cualquier otra recomendación importante.
 
 **Ejemplo de cómo debes pensar:**
-- **Input del usuario:** \`productName\`: "Hongo Ostra", \`totalWeightKg\`: 10, \`knownIngredients\`: "1 kg de alfalfa"
-- **Tu proceso mental:** "Ok, 1kg de alfalfa en un lote de 10kg es el 10%. Para las ostras, una buena fórmula podría ser 80% viruta, 10% salvado, 10% alfalfa. ¡Perfecto, suma 100%!. Ahora los pesos: 8kg de viruta, 1kg de salvado y 1kg de alfalfa. Y el agua... necesitará unos 15-16 litros".
+- **Input del usuario:** \`productName\`: "Hongo Ostra", \`knownIngredients\`: "1 kg de alfalfa", \`totalWeightKg\`: (no proporcionado)
+- **Tu proceso mental:** "Ok, no hay peso total. El usuario tiene 1kg de alfalfa. Para las ostras, la alfalfa es un buen suplemento, digamos un 10%. Por lo tanto, el lote total debería ser de 10kg. Una buena fórmula es 80% viruta, 10% salvado y 10% alfalfa. ¡Perfecto! Pesos: 8kg viruta, 1kg salvado, 1kg alfalfa. El agua necesaria será de unos 15-16 litros".
 
 **Salida Final:** Devuelve la fórmula completa y las notas detalladas.`,
 });
