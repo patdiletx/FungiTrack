@@ -9,11 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FungiTrackLogo } from "@/components/FungiTrackLogo";
-import { LogIn, KeyRound, AtSign, Loader2, Terminal } from 'lucide-react';
-import { supabase, supabaseInitializationError } from '@/lib/supabaseClient';
+import { LogIn, KeyRound, AtSign, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/hooks/use-toast';
 import { AuthError } from '@supabase/supabase-js';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Por favor, ingresa un email válido." }),
@@ -34,41 +33,14 @@ export default function LoginPage() {
   
   const { formState: { isSubmitting } } = form;
 
-  if (supabaseInitializationError) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
-        <FungiTrackLogo className="mb-8" />
-        <Card className="w-full max-w-lg border-destructive">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl text-destructive">Error de Configuración</CardTitle>
-            <CardDescription>
-              No se pudo inicializar la conexión con la base de datos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>¡Acción Requerida!</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">{supabaseInitializationError}</p>
-                <p className="text-xs font-mono bg-destructive/20 p-2 rounded">Asegúrate de que el fichero <strong>.env.local</strong> exista en la raíz de tu proyecto y que las variables sean correctas.</p>
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
-    if (!supabase) return;
     const { error } = await supabase.auth.signInWithPassword(values);
 
     if (error) {
       if (error instanceof AuthError && error.message.includes('Email not confirmed')) {
          toast({
           title: "Confirma tu email",
-          description: "Revisa tu bandeja de entrada para encontrar el enlace de confirmación.",
+          description: "Revisa tu bandeja de entrada para encontrar el enlace de confirmación. (O deshabilita la confirmación de email en la configuración de Supabase para desarrollo).",
           variant: "destructive",
         });
       } else {
