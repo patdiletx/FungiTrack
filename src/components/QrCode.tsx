@@ -18,6 +18,7 @@ export function QrCode({ value, size = 100, className }: QrCodeProps) {
       height={size}
       alt={`QR Code for ${value}`}
       className={className}
+      priority
     />
   );
 }

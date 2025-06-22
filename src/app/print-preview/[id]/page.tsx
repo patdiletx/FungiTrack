@@ -31,13 +31,6 @@ export default function PrintPreviewPage() {
         .finally(() => setLoading(false));
     }
   }, [id]);
-
-  useEffect(() => {
-    if (lote) {
-      // Delay print to allow QR codes to load
-      setTimeout(() => window.print(), 1000);
-    }
-  }, [lote]);
   
   if (loading) {
     return (
