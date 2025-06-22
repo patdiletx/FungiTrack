@@ -12,6 +12,7 @@ import { FungiTrackLogo } from "@/components/FungiTrackLogo";
 import { LogIn, KeyRound, AtSign, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/hooks/use-toast';
+import { AuthError } from '@supabase/supabase-js';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Por favor, ingresa un email válido." }),
@@ -36,11 +37,20 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword(values);
 
     if (error) {
-      toast({
-        title: "Error de autenticación",
-        description: "Email o contraseña incorrectos. Por favor, inténtalo de nuevo.",
-        variant: "destructive",
-      });
+      // Provide more specific feedback for common auth errors
+      if (error instanceof AuthError && error.message.includes('Email not confirmed')) {
+         toast({
+          title: "Confirma tu email",
+          description: "Revisa tu bandeja de entrada para encontrar el enlace de confirmación.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error de autenticación",
+          description: "Email o contraseña incorrectos. Por favor, inténtalo de nuevo.",
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "¡Bienvenido!",
