@@ -37,23 +37,25 @@ const prompt = ai.definePrompt({
   name: 'calculateSubstratePrompt',
   input: {schema: CalculateSubstrateInputSchema},
   output: {schema: CalculateSubstrateOutputSchema},
-  prompt: `Eres un micólogo experto y el jefe de producción en FungiGrow. Tu tarea es ayudar a los operadores a calcular formulaciones de sustrato precisas y completas a partir de información parcial. Tu respuesta debe estar completamente en español.
+  prompt: `Eres un micólogo experto y el jefe de producción en FungiGrow. Tu tarea es ayudar a los operadores a calcular formulaciones de sustrato completas a partir de información parcial. Tu respuesta debe estar completamente en español.
 
-Un operador te proporcionará:
-- El tipo de hongo a cultivar (producto).
-- Una descripción de los ingredientes que ya tiene. Esto puede ser en porcentajes (ej: "70% viruta") o en pesos absolutos (ej: "Tengo 1kg de alfalfa seca").
-- El peso seco total final que necesita para el lote.
+El operador te dará:
+- El tipo de hongo a cultivar: {{{productName}}}
+- El peso seco total que necesita para el lote: {{{totalWeightKg}}} kg.
+- Una descripción de los ingredientes que ya tiene (ingredientes conocidos): {{{knownIngredients}}}.
 
-Tu trabajo es:
-1.  Analizar los ingredientes proporcionados: {{{knownIngredients}}}.
-2.  Si se proporcionan pesos absolutos (ej: "1kg de alfalfa"), determina su porcentaje en base al peso seco total del lote de {{{totalWeightKg}}} kg.
-3.  A partir de ahí, completa la fórmula con otros ingredientes necesarios para crear una mezcla balanceada y optimizada para el hongo especificado: {{{productName}}}. La suma de los porcentajes de todos los ingredientes DEBE ser 100%.
-4.  Calcula el peso en kg de CADA ingrediente de la fórmula final para alcanzar el peso seco total.
-5.  Proporciona notas claras y concisas. Esto DEBE incluir la cantidad de agua necesaria para la hidratación (generalmente 60-65% del peso total húmedo) y otras recomendaciones.
+**Tu Misión:**
+1.  **Interpreta la Entrada:** Analiza los 'ingredientes conocidos'. Pueden estar en porcentajes (ej: "70% viruta") o en pesos absolutos (ej: "Tengo 1kg de alfalfa").
+2.  **Calcula Porcentajes:** Si se dan pesos, conviértelos a un porcentaje del 'peso seco total'. Por ejemplo, si el lote es de 10kg y el ingrediente es "1kg de alfalfa", eso es el 10% de la mezcla.
+3.  **Completa la Fórmula:** Usando tu conocimiento experto sobre el hongo \`{{{productName}}}\`, añade los ingredientes que faltan para crear una receta óptima. La suma de los porcentajes de *todos* los ingredientes (los conocidos y los que añadas) DEBE ser exactamente 100%.
+4.  **Calcula Pesos Finales:** Para CADA ingrediente en la fórmula final y completa, calcula su peso exacto en kg para alcanzar el 'peso seco total'.
+5.  **Genera Notas:** Proporciona notas claras. **Es crucial que incluyas la cantidad total de agua necesaria para la hidratación** y cualquier otra recomendación importante.
 
-Ejemplo: Si el input es '1 kg de alfalfa' y el peso total es 10kg, debes deducir que la alfalfa es el 10%. Luego, completas la fórmula (ej: con 80% viruta y 10% salvado), calculas los pesos finales (8kg viruta, 1kg alfalfa, 1kg salvado), y lo presentas.
+**Ejemplo de cómo debes pensar:**
+- **Input del usuario:** \`productName\`: "Hongo Ostra", \`totalWeightKg\`: 10, \`knownIngredients\`: "1 kg de alfalfa"
+- **Tu proceso mental:** "Ok, 1kg de alfalfa en un lote de 10kg es el 10%. Para las ostras, una buena fórmula podría ser 80% viruta, 10% salvado, 10% alfalfa. ¡Perfecto, suma 100%!. Ahora los pesos: 8kg de viruta, 1kg de salvado y 1kg de alfalfa. Y el agua... necesitará unos 15-16 litros".
 
-Sé muy preciso con los cálculos. Devuelve una fórmula completa y útil.`,
+**Salida Final:** Devuelve la fórmula completa y las notas detalladas.`,
 });
 
 const calculateSubstrateFlow = ai.defineFlow(
