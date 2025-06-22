@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, Loader2, BookHeart } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote, PhotoEntry, Kit, NotificationSettings, Coordinates, KitSettings } from '@/lib/types';
-import { mycoMind, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
+import { mycoMind, type MycoMindOutput, MycoMindInput } from '@/ai/flows/myco-mind-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Hud } from '@/components/Simbionte/Hud';
@@ -74,54 +74,27 @@ export default function MycoSimbiontePage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const recognitionRef = useRef<any>(null);
-  const initialCallMade = useRef(false);
-  
   const dynamicStatus = lote ? getDynamicStatus(lote) : 'Cargando...';
 
-  const updateSettings = useCallback(async (newSettings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'>>) => {
-      if (!id) return;
-      try {
-          await updateKitSettingsAction(id, newSettings);
-      } catch (e) {
-          console.error("Failed to save settings to DB", e);
-          toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudieron guardar los cambios en el servidor.'});
-      }
-  }, [id, toast]);
-
-  const callMycoMind = useCallback(async (input: any, overrideCoords?: Coordinates | null) => {
-      if (!lote) return;
-      setMycoState('thinking');
-      const currentCoords = overrideCoords !== undefined ? overrideCoords : coordinates;
-      
-      try {
-        const aiResponse = await mycoMind({
-            ...input,
-            loteContext: {
-              productName: lote.productos!.nombre,
-              ageInDays: getAgeInDays(lote.created_at),
-              status: dynamicStatus,
-              incidents: lote.incidencias,
-              latitude: currentCoords?.latitude,
-              longitude: currentCoords?.longitude,
-            }
-        });
-
+  // This is the core function for interacting with the AI
+  const handleAiInteraction = useCallback(async (input: MycoMindInput) => {
+    if (!id) return;
+    setMycoState('thinking');
+    try {
+        const aiResponse = await mycoMind(input);
         if (!aiResponse) {
             throw new Error("Myco-Mind AI returned a null or undefined response.");
         }
         
-        updateSettings({ last_ai_response: aiResponse });
+        // Persist the latest AI response to the DB
+        await updateKitSettingsAction(id, { last_ai_response: aiResponse });
 
+        // Update the UI state
         const { response, mood, weather: weatherData } = aiResponse;
-        
         setMycoMood(mood);
-        if (weatherData) {
-            setWeather(weatherData);
-        } else {
-            setWeather(null);
-        }
+        setWeather(weatherData ?? null);
         setDisplayedMessage({ id: Date.now(), text: response });
-      } catch (e) {
+    } catch (e) {
         console.error("Error calling Myco-Mind AI:", e);
         if (e instanceof Error && e.message.includes("null output")) {
              setDisplayedMessage({ id: Date.now(), text: "Red neuronal ocupada. Intenta de nuevo en un momento." });
@@ -129,34 +102,64 @@ export default function MycoSimbiontePage() {
              setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
         }
         setMycoMood('Estrés');
-      } finally {
+    } finally {
         setMycoState('idle');
-      }
-  }, [lote, coordinates, dynamicStatus, updateSettings]);
+    }
+  }, [id]);
 
-  const onPhotoUpload = (photo: PhotoEntry) => {
+
+  const onPhotoUpload = async (photo: PhotoEntry) => {
     const newHistory = [...photoHistory, photo];
     setPhotoHistory(newHistory);
-    updateSettings({ photo_history: newHistory });
+    try {
+        await updateKitSettingsAction(id, { photo_history: newHistory });
+    } catch(e) {
+        console.error("Failed to save photo history", e);
+        toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudo guardar la foto en el servidor.'});
+    }
   };
   
-  const onSettingsChange = (settings: NotificationSettings) => {
+  const onSettingsChange = async (settings: NotificationSettings) => {
     setNotificationSettings(settings);
-    updateSettings({ notification_settings: settings });
-     if(settings.enabled) {
-        toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
-     }
+    try {
+        await updateKitSettingsAction(id, { notification_settings: settings });
+        if(settings.enabled) {
+            toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
+        }
+    } catch(e) {
+        console.error("Failed to save notification settings", e);
+        toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudieron guardar las alertas en el servidor.'});
+    }
   };
   
-  const onCoordinatesChange = (coords: Coordinates) => {
-    setCoordinates(coords);
-    updateSettings({ coordinates: coords });
-    toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local para darte consejos.' });
+  const onCoordinatesChange = async (coords: Coordinates) => {
+    setCoordinates(coords); // Update UI state immediately
     
-    callMycoMind({ 
-        interactionType: 'QUERY', 
-        userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' 
-    }, coords);
+    // First, save the new coordinates to the database.
+    try {
+        await updateKitSettingsAction(id, { coordinates: coords });
+        toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local para darte consejos.' });
+    } catch(e) {
+        console.error("Failed to save coordinates", e);
+        toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudo guardar la ubicación en el servidor.'});
+        return; // Stop if saving failed
+    }
+
+    // After saving, trigger a new AI interaction with the updated context
+    if(lote){
+         handleAiInteraction({
+            interactionType: 'QUERY',
+            userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?',
+            loteContext: {
+              productName: lote.productos!.nombre,
+              ageInDays: getAgeInDays(lote.created_at),
+              status: getDynamicStatus(lote),
+              incidents: lote.incidencias,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            }
+        });
+    }
   };
 
   // Speech Recognition Setup
@@ -180,13 +183,21 @@ export default function MycoSimbiontePage() {
     recognition.onstart = () => setMycoState('listening');
     recognition.onend = () => setMycoState('idle');
 
-    recognition.onresult = async (event: any) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      if (!transcript.trim()) return;
+      if (!transcript.trim() || !lote) return;
       
-      await callMycoMind({
+      handleAiInteraction({
           interactionType: 'QUERY',
           userMessage: transcript,
+          loteContext: {
+              productName: lote.productos!.nombre,
+              ageInDays: getAgeInDays(lote.created_at),
+              status: dynamicStatus,
+              incidents: lote.incidencias,
+              latitude: coordinates?.latitude,
+              longitude: coordinates?.longitude,
+          }
       });
     };
     recognition.onerror = (event: any) => {
@@ -194,72 +205,94 @@ export default function MycoSimbiontePage() {
         toast({ variant: "destructive", title: "Error de voz", description: event.error });
     }
     recognitionRef.current = recognition;
-  }, [callMycoMind, toast]);
+  }, [handleAiInteraction, toast, lote, coordinates, dynamicStatus]);
 
-  // Initial Data Fetch
+  // Single, robust initialization effect
   useEffect(() => {
     if (!id) return;
-    async function fetchData() {
-      setLoading(true);
-      const loteData = await getLoteByIdAction(id);
-      if (!loteData || !loteData.productos) {
-        notFound();
-      }
-      setLote(loteData);
-      
-      const settings = loteData.kit_settings?.[0];
-      const initialCoords = settings?.coordinates || null;
-      
-      setPhotoHistory(settings?.photo_history || []);
-      setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
-      setCoordinates(initialCoords);
-      
-      // If we don't have coordinates, we can safely restore the last AI response from DB.
-      // If we DO have coordinates, we'll make a fresh call to get weather, so we don't restore here.
-      const lastResponse = settings?.last_ai_response;
-      if (lastResponse && !initialCoords) {
-          const { response, mood, weather: weatherData } = lastResponse;
-          setMycoMood(mood);
-          if (weatherData) setWeather(weatherData); // Should be null, but for safety
-          setDisplayedMessage({ id: Date.now(), text: response });
-      }
+    let isCancelled = false;
 
-      try {
-        const storedKitsRaw = localStorage.getItem('fungi-my-kits');
-        let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
-        if (!kits.some(k => k.id === loteData.id)) {
-            kits.push({ id: loteData.id, name: loteData.productos.nombre });
-            localStorage.setItem('fungi-my-kits', JSON.stringify(kits));
+    async function initializePage() {
+        setLoading(true);
+
+        // 1. Fetch all data from the server
+        const loteData = await getLoteByIdAction(id);
+        if (isCancelled || !loteData || !loteData.productos) {
+            if(!isCancelled) notFound();
+            return;
         }
-        setMyKits(kits);
-      } catch (e) {
-          console.error("Failed to update kit list in localStorage", e);
-      }
 
-      setLoading(false);
+        // 2. Set all component state based on fetched data
+        setLote(loteData);
+        
+        const settings = loteData.kit_settings?.[0];
+        const initialCoords = settings?.coordinates || null;
+        setPhotoHistory(settings?.photo_history || []);
+        setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
+        setCoordinates(initialCoords);
+
+        try {
+            const storedKitsRaw = localStorage.getItem('fungi-my-kits');
+            let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
+            if (!kits.some(k => k.id === loteData.id)) {
+                kits.push({ id: loteData.id, name: loteData.productos.nombre });
+                localStorage.setItem('fungi-my-kits', JSON.stringify(kits));
+            }
+            setMyKits(kits);
+        } catch (e) {
+            console.error("Failed to update kit list in localStorage", e);
+        }
+        
+        // 3. Decide AI action: fresh call or restore from cache
+        const lastResponse = settings?.last_ai_response;
+        const needsFreshCall = !!initialCoords || !lastResponse;
+
+        if (needsFreshCall) {
+            const currentDynamicStatus = getDynamicStatus(loteData);
+            const mycoMindInput: MycoMindInput = {
+                interactionType: 'INITIALIZE',
+                loteContext: {
+                    productName: loteData.productos!.nombre,
+                    ageInDays: getAgeInDays(loteData.created_at),
+                    status: currentDynamicStatus,
+                    incidents: loteData.incidencias,
+                    latitude: initialCoords?.latitude,
+                    longitude: initialCoords?.longitude,
+                }
+            };
+            // This is a special case of handleAiInteraction, done manually to avoid stale state
+            setMycoState('thinking');
+            try {
+                const aiResponse = await mycoMind(mycoMindInput);
+                if (!aiResponse) throw new Error("AI returned null");
+                await updateKitSettingsAction(loteData.id, { last_ai_response: aiResponse });
+                setMycoMood(aiResponse.mood);
+                setWeather(aiResponse.weather ?? null);
+                setDisplayedMessage({ id: Date.now(), text: aiResponse.response });
+            } catch (e) {
+                console.error("Error during initial AI call:", e);
+                setDisplayedMessage({ id: Date.now(), text: "Error de conexión con la red neuronal..." });
+                setMycoMood('Estrés');
+            } finally {
+                setMycoState('idle');
+            }
+        } else if (lastResponse) {
+            // Restore directly from cache
+            setMycoMood(lastResponse.mood);
+            setWeather(lastResponse.weather ?? null);
+            setDisplayedMessage({ id: Date.now(), text: lastResponse.response });
+        }
+        
+        setLoading(false);
     }
-    fetchData();
+
+    initializePage();
+
+    return () => {
+        isCancelled = true;
+    };
   }, [id]);
 
-  // Initial MycoMind call, runs after initial data is loaded to get fresh data.
-  useEffect(() => {
-    // Exit if: we are still loading, have already made the call, or don't have the main lote data.
-    if (loading || initialCallMade.current || !lote) {
-        return;
-    }
-    
-    const lastResponse = lote.kit_settings?.[0]?.last_ai_response;
-    
-    // We need a fresh AI call if we have coordinates (to get current weather) 
-    // or if the user has no conversation history at all.
-    const needsFreshCall = !!coordinates || !lastResponse;
-
-    if (needsFreshCall) {
-      initialCallMade.current = true; // Mark that we've made the call for this session.
-      callMycoMind({ interactionType: 'INITIALIZE' }, coordinates);
-    }
-    
-  }, [loading, lote, coordinates, callMycoMind]);
 
   // Handles scheduling and firing notifications
   useEffect(() => {
