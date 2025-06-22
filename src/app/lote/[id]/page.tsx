@@ -65,11 +65,14 @@ const getAgeInDays = (creationDate: string | Date): number => {
 };
 
 const getDynamicStatus = (lote: Lote): string => {
+    // Producer-set statuses that stop the automatic lifecycle
+    if (['Vendido', 'Contaminado'].includes(lote.estado)) {
+        return lote.estado;
+    }
+    
     const age = getAgeInDays(lote.created_at);
 
     // The user's kit status is determined purely by its age.
-    // The producer-set batch status (`lote.estado`) and batch-level `incidencias`
-    // are intentionally ignored on this page to provide an independent lifecycle for each kit.
     if (age <= 14) return 'En Incubación';
     if (age <= 25) return 'En Fructificación';
     return 'Listo para Cosecha';
@@ -110,6 +113,7 @@ export default function MycoSimbiontePage() {
       if (storedPhotos) {
         setPhotoHistory(JSON.parse(storedPhotos));
       }
+
       const storedNotifications = localStorage.getItem(`fungi-notifications-${id}`);
       if (storedNotifications) {
         const parsedSettings = JSON.parse(storedNotifications);
@@ -129,16 +133,71 @@ export default function MycoSimbiontePage() {
       } else {
         setNotificationSettings(defaultNotificationSettings);
       }
+
       const storedLocation = localStorage.getItem(`fungi-location-${id}`);
       if (storedLocation) {
         setCoordinates(JSON.parse(storedLocation));
       }
+      
+      const storedResponse = localStorage.getItem(`fungi-last-response-${id}`);
+      if (storedResponse) {
+          const parsed: MycoMindOutput = JSON.parse(storedResponse);
+          setMycoMood(parsed.mood);
+          if (parsed.weather) {
+              setWeather(parsed.weather);
+          }
+          setDisplayedMessage({ id: Date.now(), text: parsed.response });
+      }
+
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
     } finally {
         setLocalStorageLoaded(true);
     }
   }, [id]);
+
+  const callMycoMind = useCallback(async (input: any) => {
+      if (!lote) return;
+      setMycoState('thinking');
+      try {
+        const aiResponse = await mycoMind({
+            ...input,
+            loteContext: {
+              productName: lote.productos!.nombre,
+              ageInDays: getAgeInDays(lote.created_at),
+              status: dynamicStatus,
+              latitude: coordinates?.latitude,
+              longitude: coordinates?.longitude,
+            }
+        });
+
+        if (!aiResponse) {
+            throw new Error("Myco-Mind AI returned a null or undefined response.");
+        }
+        
+        localStorage.setItem(`fungi-last-response-${id}`, JSON.stringify(aiResponse));
+
+        const { response, mood, weather: weatherData } = aiResponse;
+        
+        setMycoMood(mood);
+        if (weatherData) {
+            setWeather(weatherData);
+        } else {
+            setWeather(null);
+        }
+        setDisplayedMessage({ id: Date.now(), text: response });
+      } catch (e) {
+        console.error("Error calling Myco-Mind AI:", e);
+        if (e instanceof Error && e.message.includes("null output")) {
+             setDisplayedMessage({ id: Date.now(), text: "Red neuronal ocupada. Intenta de nuevo en un momento." });
+        } else {
+             setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
+        }
+        setMycoMood('Estrés');
+      } finally {
+        setMycoState('idle');
+      }
+  }, [lote, coordinates, dynamicStatus, id]);
 
   const savePhotoHistory = useCallback((photos: PhotoEntry[]) => {
     if (!id) return;
@@ -170,49 +229,12 @@ export default function MycoSimbiontePage() {
           localStorage.setItem(`fungi-location-${id}`, JSON.stringify(coords));
           setCoordinates(coords);
           toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima de esta ubicación.' });
-          // Optional: Re-call Myco Mind to update weather immediately
-          // callMycoMind({ interactionType: 'QUERY', userMessage: 'Actualiza el reporte ambiental.' ... });
+          callMycoMind({ interactionType: 'QUERY', userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' });
       } catch (e) {
           console.error("Failed to save coordinates to localStorage", e);
           toast({ variant: 'destructive', title: 'Error al guardar ubicación'});
       }
-  }, [id, toast]);
-
-
-  const callMycoMind = useCallback(async (input: any) => {
-      if (!lote) return;
-      setMycoState('thinking');
-      try {
-        const { response, mood, weather: weatherData } = await mycoMind({
-            ...input,
-            loteContext: {
-              productName: lote.productos!.nombre,
-              ageInDays: getAgeInDays(lote.created_at),
-              status: getDynamicStatus(lote),
-              // Batch-level incidents from the producer are NOT passed to the user's AI.
-              latitude: coordinates?.latitude,
-              longitude: coordinates?.longitude,
-            }
-        });
-        setMycoMood(mood);
-        if (weatherData) {
-            setWeather(weatherData);
-        } else {
-            setWeather(null); // Clear weather data if not available
-        }
-        setDisplayedMessage({ id: Date.now(), text: response });
-      } catch (e) {
-        console.error("Error calling Myco-Mind AI:", e);
-        if (e instanceof Error && e.message.includes("The prompt returned a null output")) {
-             setDisplayedMessage({ id: Date.now(), text: "Red neuronal ocupada. Intenta de nuevo en un momento." });
-        } else {
-             setDisplayedMessage({ id: Date.now(), text: "Error de conexión en la red neuronal..." });
-        }
-        setMycoMood('Estrés');
-      } finally {
-        setMycoState('idle');
-      }
-  }, [lote, coordinates]);
+  }, [id, toast, callMycoMind]);
 
   // Speech Recognition Setup
   useEffect(() => {
@@ -281,39 +303,35 @@ export default function MycoSimbiontePage() {
 
   // Initial MycoMind call, fires after all data is ready
   useEffect(() => {
-    // Make the initial call only when both API data and localStorage are loaded, and only once.
-    if (lote && !loading && localStorageLoaded && !initialCallMade.current) {
+    // Make the initial call only when both API data and localStorage are loaded,
+    // and only if there isn't a message already displayed from localStorage.
+    if (lote && !loading && localStorageLoaded && !initialCallMade.current && !displayedMessage) {
       initialCallMade.current = true;
       callMycoMind({ 
         interactionType: 'INITIALIZE', 
       });
     }
-  }, [lote, loading, localStorageLoaded, callMycoMind]);
+  }, [lote, loading, localStorageLoaded, callMycoMind, displayedMessage]);
 
   // Handles scheduling and firing notifications
   useEffect(() => {
-    // Notifications only run in the browser and if enabled by the user and permission is granted
     if (typeof window === 'undefined' || !notificationSettings.enabled || Notification.permission !== 'granted') {
       return;
     }
 
     const checkAndNotify = () => {
       const now = new Date();
-      // Format to HH:mm for comparison
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
       const { watering, aeration } = notificationSettings;
 
-      // Check for watering notification
       if (watering.enabled && watering.time === currentTime) {
         new Notification('💧 Recordatorio de Riego', {
           body: `¡Es hora de regar tu ${lote?.productos?.nombre || 'cultivo'}! La hidratación es clave.`,
-          // The tag prevents duplicate notifications if the user has multiple tabs open
           tag: `fungi-watering-${id}`, 
         });
       }
 
-      // Check for aeration notifications
       if (aeration.enabled && aeration.times.includes(currentTime)) {
          new Notification('🌬️ Recordatorio de Ventilación', {
           body: `¡Es hora de ventilar tu ${lote?.productos?.nombre || 'cultivo'}! Un poco de aire fresco le vendrá genial.`,
@@ -322,10 +340,8 @@ export default function MycoSimbiontePage() {
       }
     };
 
-    // Check every minute.
     const intervalId = setInterval(checkAndNotify, 60000); 
 
-    // Important: Clean up the interval when the component unmounts or settings change.
     return () => clearInterval(intervalId);
 
   }, [notificationSettings, lote, id]);
@@ -348,7 +364,7 @@ export default function MycoSimbiontePage() {
     <main className="relative flex flex-col h-screen w-full bg-[#201A30] text-slate-100 font-body overflow-hidden">
       <NucleoNeural mood={mycoMood} state={mycoState} className="z-0" />
       
-      <header className="z-20 flex flex-wrap items-start justify-between gap-4 p-4">
+      <header className="flex-shrink-0 z-20 flex flex-wrap items-start justify-between gap-4 p-4">
         <Hud
           age={lote ? getAgeInDays(lote.created_at) : 0}
           mood={mycoMood}
@@ -362,7 +378,7 @@ export default function MycoSimbiontePage() {
         </Button>
       </header>
 
-      <div className="relative flex-1 w-full flex items-center justify-center z-10 px-8">
+      <div className="flex-grow w-full flex items-center justify-center z-10 px-8">
         {displayedMessage && (
             <div 
               key={displayedMessage.id} 
