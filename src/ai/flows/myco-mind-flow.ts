@@ -33,7 +33,7 @@ const MycoMindOutputSchema = z.object({
   weather: z.object({ 
     temperature: z.number(), 
     humidity: z.number() 
-  }).optional().describe("The current local weather conditions if available, obtained via tool use."),
+  }).nullable().describe("The current local weather conditions if available, obtained via tool use. If location data is not available, this field should be null."),
 });
 export type MycoMindOutput = z.infer<typeof MycoMindOutputSchema>;
 
