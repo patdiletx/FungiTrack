@@ -1,28 +1,40 @@
 'use client';
 import { cn } from "@/lib/utils";
-import { MycoMindOutput } from "@/ai/flows/myco-mind-flow";
+import { type MycoMindOutput } from "@/ai/flows/myco-mind-flow";
 
 interface HudProps {
     age: number;
     mood: MycoMindOutput['mood'];
+    status: string;
+    productName: string;
 }
 
-const moodColors: Record<MycoMindOutput['mood'], string> = {
-    'Enfoque': 'bg-[#A080E0]/80 text-white',
-    'Euforia': 'bg-yellow-400/80 text-yellow-900',
-    'Letargo': 'bg-slate-500/80 text-slate-100',
-    'Estrés': 'bg-orange-600/80 text-white',
+const moodTextColors: Record<MycoMindOutput['mood'], string> = {
+    'Enfoque': 'text-primary',
+    'Euforia': 'text-yellow-400',
+    'Letargo': 'text-slate-400',
+    'Estrés': 'text-orange-500',
 };
 
+const statusTextColors: { [key: string]: string } = {
+    'En Incubación': 'text-cyan-400',
+    'En Fructificación': 'text-green-400',
+    'Listo para Venta': 'text-lime-400',
+    'Vendido': 'text-slate-400',
+    'Contaminado': 'text-red-500',
+}
 
-export function Hud({ age, mood }: HudProps) {
+
+export function Hud({ age, mood, status, productName }: HudProps) {
     return (
         <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
-            <div className={cn(
-                "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold backdrop-blur-md transition-colors duration-500",
-                moodColors[mood]
-            )}>
-                <span>Estado: {mood}</span>
+            <div className="rounded-lg px-4 py-2 text-sm font-semibold backdrop-blur-md bg-black/30 border border-white/10 text-white shadow-lg">
+                <h2 className="font-headline text-lg text-primary">{productName}</h2>
+                <div className="mt-2 space-y-1 text-xs text-slate-300">
+                    <p><span className="font-bold">Edad:</span> {age} días</p>
+                    <p><span className="font-bold">Estado:</span> <span className={cn(statusTextColors[status] || 'text-white', 'font-bold')}>{status}</span></p>
+                    <p><span className="font-bold">Humor IA:</span> <span className={cn(moodTextColors[mood], 'font-bold')}>{mood}</span></p>
+                </div>
             </div>
         </div>
     )

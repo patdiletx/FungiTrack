@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell, Camera, Image as ImageIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Bell, Camera, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
 import { type PhotoEntry, type NotificationSettings } from "@/app/lote/[id]/page";
 import { ScrollArea } from "../ui/scroll-area";
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface CareProgressPanelProps {
     isOpen: boolean;
@@ -19,7 +21,7 @@ interface CareProgressPanelProps {
     photoHistory: PhotoEntry[];
     notificationSettings: NotificationSettings;
     onPhotoUpload: (photo: PhotoEntry) => void;
-    onNotificationToggle: (enabled: boolean) => void;
+    onSettingsChange: (settings: NotificationSettings) => void;
 }
 
 export function CareProgressPanel({
@@ -28,12 +30,12 @@ export function CareProgressPanel({
     photoHistory,
     notificationSettings,
     onPhotoUpload,
-    onNotificationToggle,
+    onSettingsChange,
 }: CareProgressPanelProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleNotificationToggle = async (enabled: boolean) => {
+    const handleMasterToggle = async (enabled: boolean) => {
         if (enabled && typeof window !== 'undefined' && "Notification" in window) {
             if (Notification.permission !== 'granted') {
                 const permission = await Notification.requestPermission();
@@ -43,24 +45,49 @@ export function CareProgressPanel({
                         title: 'Permiso Denegado',
                         description: 'No se podrán enviar notificaciones de cuidado.'
                     });
-                    onNotificationToggle(false); // Ensure the state is toggled back off
+                    onSettingsChange({ ...notificationSettings, enabled: false });
                     return;
                 }
             }
         }
-        onNotificationToggle(enabled);
+        onSettingsChange({ ...notificationSettings, enabled });
         if (enabled) {
-            toast({
-                title: 'Alertas Activadas',
-                description: 'Myco te recordará cuándo necesita cuidados.'
-            });
-            // Example of a test notification
             new Notification('Simbiosis Conectada', {
                 body: 'Las alertas de cuidado están ahora activas.',
-                icon: '/logo.png' // You might need to add a logo to your public folder
+                icon: '/logo.png' 
             });
         }
     };
+    
+    const handleSubToggle = (key: 'watering' | 'aeration', enabled: boolean) => {
+        const newSettings = { ...notificationSettings, [key]: { ...notificationSettings[key], enabled }};
+        onSettingsChange(newSettings);
+    };
+
+    const handleTimeChange = (key: 'watering', time: string) => {
+        const newSettings = { ...notificationSettings, watering: { ...notificationSettings.watering, time }};
+        onSettingsChange(newSettings);
+    };
+    
+    const handleAerationTimeChange = (index: number, time: string) => {
+        const newTimes = [...notificationSettings.aeration.times];
+        newTimes[index] = time;
+        const newSettings = { ...notificationSettings, aeration: { ...notificationSettings.aeration, times: newTimes }};
+        onSettingsChange(newSettings);
+    };
+
+    const addAerationTime = () => {
+        const newTimes = [...notificationSettings.aeration.times, '12:00'];
+        const newSettings = { ...notificationSettings, aeration: { ...notificationSettings.aeration, times: newTimes }};
+        onSettingsChange(newSettings);
+    };
+    
+    const removeAerationTime = (index: number) => {
+        const newTimes = notificationSettings.aeration.times.filter((_, i) => i !== index);
+        const newSettings = { ...notificationSettings, aeration: { ...notificationSettings.aeration, times: newTimes }};
+        onSettingsChange(newSettings);
+    }
+
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -87,7 +114,7 @@ export function CareProgressPanel({
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[350px] sm:w-[540px] flex flex-col">
+            <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[400px] sm:w-[540px] flex flex-col">
                 <SheetHeader className="text-left">
                     <SheetTitle className="font-headline text-3xl text-white">Cuidados y Progreso</SheetTitle>
                     <SheetDescription className="text-slate-400">
@@ -97,8 +124,8 @@ export function CareProgressPanel({
 
                 <ScrollArea className="flex-grow pr-4 -mr-6 mt-4">
                     <div className="space-y-6">
-                        {/* Notification Settings */}
-                        <div className="p-4 rounded-lg bg-black/20 border border-white/10">
+                        {/* --- Notification Settings --- */}
+                        <div className="p-4 rounded-lg bg-black/20 border border-white/10 space-y-4">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="notifications-switch" className="flex items-center gap-3">
                                     <Bell className="h-6 w-6 text-[#70B0F0]" />
@@ -107,15 +134,47 @@ export function CareProgressPanel({
                                 <Switch
                                     id="notifications-switch"
                                     checked={notificationSettings.enabled}
-                                    onCheckedChange={handleNotificationToggle}
+                                    onCheckedChange={handleMasterToggle}
                                 />
                             </div>
-                            <p className="text-sm text-slate-400 mt-2">
-                                Recibe recordatorios para rociar con agua y ventilar tu kit.
-                            </p>
+                           
+                           <div className={cn("space-y-4 transition-opacity", !notificationSettings.enabled && "opacity-50 pointer-events-none")}>
+                                {/* Watering */}
+                                <div className="p-3 rounded-md bg-black/20">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="watering-switch" className="font-semibold">Recordatorio de Riego</Label>
+                                        <Switch id="watering-switch" checked={notificationSettings.watering.enabled} onCheckedChange={(c) => handleSubToggle('watering', c)}/>
+                                    </div>
+                                    <div className={cn("mt-2", !notificationSettings.watering.enabled && "opacity-50 pointer-events-none")}>
+                                        <Input type="time" value={notificationSettings.watering.time} onChange={(e) => handleTimeChange('watering', e.target.value)} className="bg-slate-800/50 border-slate-700"/>
+                                    </div>
+                                </div>
+                                
+                                 {/* Aeration */}
+                                <div className="p-3 rounded-md bg-black/20">
+                                     <div className="flex items-center justify-between">
+                                        <Label htmlFor="aeration-switch" className="font-semibold">Recordatorios de Ventilación</Label>
+                                        <Switch id="aeration-switch" checked={notificationSettings.aeration.enabled} onCheckedChange={(c) => handleSubToggle('aeration', c)} />
+                                    </div>
+                                     <div className={cn("mt-2 space-y-2", !notificationSettings.aeration.enabled && "opacity-50 pointer-events-none")}>
+                                        {notificationSettings.aeration.times.map((time, index) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                                <Input type="time" value={time} onChange={(e) => handleAerationTimeChange(index, e.target.value)} className="bg-slate-800/50 border-slate-700"/>
+                                                <Button variant="ghost" size="icon" onClick={() => removeAerationTime(index)}>
+                                                    <Trash2 className="h-4 w-4 text-red-500/80"/>
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <Button variant="outline" size="sm" onClick={addAerationTime} className="bg-transparent hover:bg-white/10 w-full">
+                                            <Plus className="mr-2 h-4 w-4"/> Añadir Horario
+                                        </Button>
+                                    </div>
+                                </div>
+                           </div>
+
                         </div>
 
-                        {/* Photo History */}
+                        {/* --- Photo History --- */}
                         <div className="p-4 rounded-lg bg-black/20 border border-white/10">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-bold flex items-center gap-3">

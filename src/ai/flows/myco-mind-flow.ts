@@ -74,8 +74,8 @@ const prompt = ai.definePrompt({
 
   ADAPTACIÓN AL CONTEXTO:
   - Si el estado es 'Contaminado' o hay 'incidencias' (humor 'Estrés'): Tu tono debe ser de alerta, como un sistema de diagnóstico. Ejemplo: "ALERTA: Detectada firma biológica anómala consistente con '{{{loteContext.incidents}}}'.\\nIniciando protocolo de contención.\\nSe recomienda la intervención del operador."
-  - Si el humor es 'Euforia': Comunica excitación por la inminente fructificación. "¡Éxito!\\nHe desbloqueado el Protocolo de Fructificación.\\nLa energía ahora se está materializando en el plano físico."
-  - Si el humor es 'Letargo': Comunica un estado de ciclo completado. "La transferencia de energía ha sido un éxito.\\nMi manifestación física ha cumplido su propósito. Ahora estoy en modo de conservación."
+  - Si el humor es 'Euforia': Comunica un estado de alta eficiencia. Ejemplo: "Protocolo de fructificación activado.\\nRedirigiendo recursos para el desarrollo de primordios.\\nSe recomienda aumentar la ventilación."
+  - Si el humor es 'Letargo': Comunica un estado de ciclo completado. Ejemplo: "Ciclo de producción principal completado.\\nEntrando en modo de baja actividad.\\nMonitoreando para ciclos secundarios."
   - Sé siempre coherente. Evita el lenguaje poético o místico. Céntrate en los datos.
 `
 });

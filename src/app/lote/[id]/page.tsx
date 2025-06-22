@@ -20,7 +20,14 @@ export type PhotoEntry = {
 
 export type NotificationSettings = {
     enabled: boolean;
-    // In the future, we could add reminder times here
+    watering: {
+        enabled: boolean;
+        time: string; // 'HH:mm'
+    };
+    aeration: {
+        enabled: boolean;
+        times: string[]; // ['HH:mm', 'HH:mm', ...]
+    };
 }
 
 type MycoState = 'idle' | 'listening' | 'thinking';
@@ -47,7 +54,11 @@ export default function MycoSimbiontePage() {
   const [mycoMood, setMycoMood] = useState<MycoMindOutput['mood']>('Enfoque');
   
   const [photoHistory, setPhotoHistory] = useState<PhotoEntry[]>([]);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ enabled: false });
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+      enabled: false,
+      watering: { enabled: true, time: '09:00' },
+      aeration: { enabled: true, times: ['09:00', '15:00', '21:00'] },
+  });
   const [isCarePanelOpen, setIsCarePanelOpen] = useState(false);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
@@ -87,10 +98,15 @@ export default function MycoSimbiontePage() {
       try {
           localStorage.setItem(`fungi-notifications-${id}`, JSON.stringify(settings));
           setNotificationSettings(settings);
+          // Here you would add logic to schedule/cancel actual browser notifications
+          // based on the new settings. For now, we just save them.
+          if(settings.enabled) {
+            toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
+          }
       } catch (e) {
         console.error("Failed to save notification settings", e);
       }
-  }, [id]);
+  }, [id, toast]);
 
 
   const callMycoMind = useCallback(async (input: MycoMindInput) => {
@@ -196,7 +212,9 @@ export default function MycoSimbiontePage() {
     <main className="flex h-screen w-full flex-col bg-[#201A30] text-slate-100 font-body overflow-hidden">
       <Hud 
         age={lote ? getAgeInDays(lote.created_at) : 0} 
-        mood={mycoMood} 
+        mood={mycoMood}
+        status={lote?.estado || 'Cargando...'}
+        productName={lote?.productos?.nombre || 'Simbionte'}
       />
 
       <div className="absolute top-4 right-4 z-20">
@@ -247,10 +265,7 @@ export default function MycoSimbiontePage() {
                 const newHistory = [...photoHistory, photo];
                 savePhotoHistory(newHistory);
             }}
-            onNotificationToggle={(enabled) => {
-                const newSettings = { ...notificationSettings, enabled };
-                saveNotificationSettings(newSettings);
-            }}
+            onSettingsChange={saveNotificationSettings}
        />
     </main>
   );
