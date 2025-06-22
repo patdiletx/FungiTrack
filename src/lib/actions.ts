@@ -54,7 +54,7 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
   return data;
 }
 
-export const createLote = async (data: Omit<Lote, 'id' | 'estado' | 'id_operador' | 'productos'>): Promise<Lote> => {
+export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias'>): Promise<Lote> => {
   const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();

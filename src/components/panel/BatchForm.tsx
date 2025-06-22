@@ -22,7 +22,6 @@ const formSchema = z.object({
   id_formulacion: z.string().uuid('Por favor, selecciona una formulación.'),
   unidades_producidas: z.coerce.number().int().positive('La cantidad debe ser un número positivo.'),
   notas_sustrato: z.string().optional(),
-  created_at: z.string().datetime(),
 });
 
 const updateFormSchema = z.object({
@@ -50,7 +49,6 @@ export function BatchForm({ productos, formulaciones, lote }: BatchFormProps) {
       id_formulacion: '',
       unidades_producidas: 1,
       notas_sustrato: '',
-      created_at: new Date().toISOString(),
     },
   });
 
