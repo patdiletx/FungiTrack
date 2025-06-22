@@ -50,12 +50,12 @@ export function NucleoNeural({ mood, state, className }: NucleoNeuralProps) {
   return (
     <div id="nucleo-container" className={cn("absolute inset-0 flex items-center justify-center perspective-[1000px]", className)}>
       <div 
-        className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] relative transition-transform duration-300 ease-out" 
+        className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] relative transition-transform duration-300 ease-out [transform-style:preserve-3d]" 
         style={rotationStyle}
       >
         <div 
             className={cn(
-                "w-full h-full rounded-full absolute transform-style-3d transition-all duration-500",
+                "w-full h-full rounded-full absolute [transform-style:preserve-3d] transition-all duration-500",
                 state === 'listening' ? 'animate-pulse' : '',
                 state === 'thinking' ? 'animate-spin-slow' : ''
             )}
@@ -66,33 +66,24 @@ export function NucleoNeural({ mood, state, className }: NucleoNeuralProps) {
         >
             {/* Particle Layers */}
             {[...Array(5)].map((_, i) => (
-                <div
-                    key={i}
-                    className="w-full h-full rounded-full absolute"
-                    style={{
-                        backgroundImage: `radial-gradient(circle at center, hsla(${baseColor}, 0.1) 0%, hsla(${baseColor}, 0) 70%)`,
-                        transform: `rotateZ(${i * 72}deg) rotateX(${i * 36}deg) scale(${1 - i * 0.1})`,
-                        animation: `spin ${(10 + i * 5)}s linear infinite ${i % 2 === 0 ? 'reverse' : ''}`,
-                    }}
-                />
+              <div
+                key={i}
+                className="w-full h-full rounded-full absolute"
+                style={{
+                    transform: `rotateZ(${i * 72}deg) rotateX(${i * 36}deg) scale(${1 - i * 0.1})`,
+                }}
+              >
+                  <div 
+                      className="w-full h-full rounded-full"
+                      style={{
+                          backgroundImage: `radial-gradient(circle at center, hsla(${baseColor}, 0.1) 0%, hsla(${baseColor}, 0) 70%)`,
+                          animation: `spin-z ${(10 + i * 5)}s linear infinite ${i % 2 === 0 ? 'reverse' : ''}`,
+                      }}
+                  />
+              </div>
             ))}
         </div>
       </div>
-      <style jsx>{`
-        .perspective-\[1000px\] {
-            perspective: 1000px;
-        }
-        .transform-style-3d {
-            transform-style: preserve-3d;
-        }
-        .animate-spin-slow {
-            animation: spin 5s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotateY(0deg); }
-            to { transform: rotateY(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

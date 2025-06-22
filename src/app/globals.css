@@ -122,6 +122,11 @@
     .animate-float-up {
         animation: float-up-and-fade 15s ease-in-out forwards;
     }
+
+    @keyframes spin-z {
+        from { transform: rotateZ(0deg); }
+        to { transform: rotateZ(360deg); }
+    }
 }
 
 
