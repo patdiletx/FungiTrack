@@ -1,4 +1,4 @@
-import type { Lote, Producto, Formulacion, KitSettings } from './types';
+import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './types';
 
 // Specify the database schema for type safety
 export type Database = {
@@ -6,8 +6,8 @@ export type Database = {
     Tables: {
       lotes: {
         Row: Lote;
-        Insert: Omit<Lote, 'created_at' | 'productos' | 'kit_settings'>;
-        Update: Partial<Omit<Lote, 'id' | 'created_at' | 'productos' | 'kit_settings'>>;
+        Insert: Omit<Lote, 'created_at' | 'productos' | 'kit_settings' | 'lotes_sustrato'>;
+        Update: Partial<Omit<Lote, 'id' | 'created_at' | 'productos' | 'kit_settings' | 'lotes_sustrato'>>;
       };
       productos: {
         Row: Producto;
@@ -23,6 +23,11 @@ export type Database = {
         Row: KitSettings;
         Insert: Omit<KitSettings, 'id' | 'created_at'>;
         Update: Partial<Omit<KitSettings, 'id' | 'created_at'>>;
+      };
+      lotes_sustrato: {
+        Row: LoteSustrato;
+        Insert: Omit<LoteSustrato, 'id' | 'created_at' | 'formulaciones'>;
+        Update: Partial<Omit<LoteSustrato, 'id' | 'created_at' | 'formulaciones'>>;
       }
     };
     Views: {

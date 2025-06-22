@@ -47,11 +47,11 @@ export interface KitSettings {
   last_ai_response: MycoMindOutput | null;
 }
 
-
 export interface Lote {
   id: string;
   created_at: string;
   id_producto: string;
+  id_lote_sustrato?: string | null; // FK to lotes_sustrato
   unidades_producidas: number;
   id_formulacion?: string | null;
   notas_sustrato?: string | null;
@@ -59,6 +59,7 @@ export interface Lote {
   incidencias?: string | null;
   id_operador: string;
   productos?: Producto; // For joined queries
+  lotes_sustrato?: LoteSustrato; // For joined queries
   kit_settings?: KitSettings[];
   dismissed_alerts?: string[] | null;
 }
@@ -73,10 +74,19 @@ export interface Formulacion {
   created_at: string;
   nombre: string;
   descripcion?: string | null;
-  // This will be stored as JSONB in the database
   ingredientes: Ingrediente[];
   puntuacion: number;
   humedad_objetivo_porcentaje?: number | null;
   notas?: string | null;
   id_operador: string;
+}
+
+export interface LoteSustrato {
+  id: string;
+  created_at: string;
+  id_formulacion: string;
+  notas_sustrato?: string | null;
+  peso_total_kg: number;
+  id_operador: string;
+  formulaciones?: Formulacion; // For joined queries
 }

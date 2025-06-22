@@ -1,6 +1,6 @@
 'use server';
 
-import type { Lote, Producto, Formulacion, KitSettings } from './types';
+import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from './supabase/server';
 import { revalidatePath } from 'next/cache';
@@ -45,7 +45,7 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
    // Step 1: Fetch the main lote data and its related product
    const { data: loteData, error: loteError } = await supabase
     .from('lotes')
-    .select('*, productos(*)')
+    .select('*, productos(*), lotes_sustrato(*, formulaciones(*))')
     .eq('id', id)
     .single();
 
@@ -76,7 +76,7 @@ export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
   return loteData;
 }
 
-export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings' | 'dismissed_alerts'>): Promise<Lote> => {
+export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings' | 'dismissed_alerts' | 'lotes_sustrato'>): Promise<Lote> => {
   const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
@@ -99,6 +99,7 @@ export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado'
   }
 
   revalidatePath('/panel');
+  revalidatePath(`/panel/sustratos/${newLote.id_lote_sustrato}`);
   return newLote;
 };
 
@@ -115,7 +116,7 @@ export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' |
   revalidatePath(`/panel/lote/${id}`);
   revalidatePath('/panel');
   
-  const { data: refetchedData } = await supabase.from('lotes').select('*, productos(*)').eq('id', id).single();
+  const { data: refetchedData } = await supabase.from('lotes').select('*, productos(*), lotes_sustrato(*)').eq('id', id).single();
   return refetchedData;
 };
 
@@ -195,6 +196,29 @@ export const updateFormulacion = async (id: string, data: Partial<Omit<Formulaci
   revalidatePath('/panel/formulaciones');
   return updatedFormulacion;
 };
+
+// --- LOTES DE SUSTRATO ---
+
+export const createLoteSustrato = async (data: Omit<LoteSustrato, 'id' | 'created_at' | 'id_operador' | 'formulaciones'>): Promise<LoteSustrato> => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated to create substrate lot.');
+
+    const newLoteSustratoData = { ...data, id: uuidv4(), id_operador: user!.id };
+    const { data: newLote, error } = await supabase
+        .from('lotes_sustrato')
+        .insert(newLoteSustratoData)
+        .select()
+        .single();
+    
+    if (error) {
+        console.error('Supabase error creating substrate lot:', error.message);
+        throw new Error(`Error de base de datos: ${error.message}`);
+    }
+
+    revalidatePath('/panel/sustratos');
+    return newLote;
+}
 
 // --- KIT SETTINGS ---
 

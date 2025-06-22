@@ -2,7 +2,7 @@
 // It can be safely imported into Server Components.
 
 import { createClient } from './supabase/server';
-import type { Lote, Producto, Formulacion, KitSettings } from './types';
+import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './types';
 
 
 // --- PRODUCTOS ---
@@ -17,7 +17,7 @@ export const getProductos = async (): Promise<Producto[]> => {
   return data || [];
 };
 
-// --- LOTES ---
+// --- LOTES DE PRODUCCIÓN ---
 
 export const getLotes = async (): Promise<Lote[]> => {
   const supabase = createClient();
@@ -71,7 +71,7 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
    // Step 1: Fetch the main lote data and its related product
    const { data: loteData, error: loteError } = await supabase
     .from('lotes')
-    .select('*, productos(*)')
+    .select('*, productos(*), lotes_sustrato(*, formulaciones(*))')
     .eq('id', id)
     .single();
   
@@ -101,6 +101,49 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
 
   return loteData;
 };
+
+export const getLotesBySustratoId = async (sustratoId: string): Promise<Lote[]> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('lotes')
+        .select('*, productos(*)')
+        .eq('id_lote_sustrato', sustratoId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching lotes by sustrato id:', error.message);
+        return [];
+    }
+    return data || [];
+};
+
+// --- LOTES DE SUSTRATO ---
+
+export const getLotesSustrato = async (): Promise<LoteSustrato[]> => {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('lotes_sustrato').select('*, formulaciones(*)').order('created_at', { ascending: false });
+    if (error) {
+        console.error('Error fetching lotes de sustrato:', error.message);
+        return [];
+    }
+    return data || [];
+};
+
+export const getLoteSustratoById = async (id: string): Promise<LoteSustrato | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('lotes_sustrato')
+        .select('*, formulaciones(*)')
+        .eq('id', id)
+        .single();
+    
+    if (error) {
+        console.error('Error fetching lote de sustrato by id:', error.message);
+        return null;
+    }
+    return data;
+};
+
 
 // --- FORMULACIONES ---
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Printer, Calendar, Package, FlaskConical, AlertTriangle, User } from "lucide-react";
+import { Printer, Calendar, Package, FlaskConical, AlertTriangle, User, Beaker } from "lucide-react";
 import { BatchForm } from "@/components/panel/BatchForm";
 import Link from 'next/link';
 import { BatchAssistant } from "@/components/panel/BatchAssistant";
@@ -46,7 +46,7 @@ export function LoteDetailClient({ lote, productos }: LoteDetailClientProps) {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline text-3xl md:text-4xl text-foreground">
-            Detalle del Lote
+            Detalle del Lote de Producción
           </h1>
           <p className="mt-1 text-muted-foreground font-body truncate">
             ID: {lote.id}
@@ -70,6 +70,20 @@ export function LoteDetailClient({ lote, productos }: LoteDetailClientProps) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Producto</span>
                 <span className="font-semibold text-right">{lote.productos?.nombre}</span>
+              </div>
+              <Separator/>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Lote de Sustrato</span>
+                {lote.id_lote_sustrato ? (
+                    <Button variant="link" asChild className="p-0 h-auto">
+                        <Link href={`/panel/sustratos/${lote.id_lote_sustrato}`} className="flex items-center gap-2">
+                            <Beaker className="h-4 w-4"/>
+                            Ver lote de sustrato
+                        </Link>
+                    </Button>
+                ) : (
+                    <span className="text-sm text-muted-foreground italic">No especificado</span>
+                )}
               </div>
               <Separator/>
               <div className="flex justify-between items-center">
@@ -100,13 +114,13 @@ export function LoteDetailClient({ lote, productos }: LoteDetailClientProps) {
             </CardContent>
           </Card>
 
-          {lote.notas_sustrato && (
+          {lote.lotes_sustrato?.notas_sustrato && (
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><FlaskConical />Notas de Sustrato</CardTitle>
+                <CardTitle className="font-headline flex items-center gap-2"><FlaskConical />Notas de Sustrato (del Lote Maestro)</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="font-body text-sm whitespace-pre-wrap">{lote.notas_sustrato}</p>
+                <p className="font-body text-sm whitespace-pre-wrap">{lote.lotes_sustrato.notas_sustrato}</p>
               </CardContent>
             </Card>
           )}
@@ -126,7 +140,7 @@ export function LoteDetailClient({ lote, productos }: LoteDetailClientProps) {
         </div>
         
         <div className="md:col-span-1 space-y-6">
-          <BatchForm productos={productos} lote={lote} />
+          <BatchForm lote={lote} />
           <BatchAssistant lote={lote} />
           <ContaminationChecker />
           <DeleteBatchButton loteId={lote.id} />
