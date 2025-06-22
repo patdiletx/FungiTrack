@@ -3,20 +3,26 @@
 import { getLoteByIdAction } from '@/lib/actions';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mic, Loader2, BrainCircuit } from 'lucide-react';
+import { Mic, Loader2, BookHeart } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote } from '@/lib/types';
 import { mycoMind, type MycoMindInput, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Hud } from '@/components/Simbionte/Hud';
-import { GeneticPathwaysPanel } from '@/components/Simbionte/GeneticPathwaysPanel';
 import { NucleoNeural } from '@/components/Simbionte/NucleoNeural';
+import { CareProgressPanel } from '@/components/Simbionte/CareProgressPanel';
 
-export type SimbionteData = {
-    energy: number;
-    unlockedPaths: string[];
-};
+export type PhotoEntry = {
+    url: string;
+    date: string;
+}
+
+export type NotificationSettings = {
+    enabled: boolean;
+    // In the future, we could add reminder times here
+}
+
 type MycoState = 'idle' | 'listening' | 'thinking';
 type DisplayMessage = {
     id: number;
@@ -39,35 +45,51 @@ export default function MycoSimbiontePage() {
   const [loading, setLoading] = useState(true);
   const [mycoState, setMycoState] = useState<MycoState>('idle');
   const [mycoMood, setMycoMood] = useState<MycoMindOutput['mood']>('Enfoque');
-  const [simbionteData, setSimbionteData] = useState<SimbionteData>({ energy: 0, unlockedPaths: [] });
-  const [panelOpen, setPanelOpen] = useState(false);
+  
+  const [photoHistory, setPhotoHistory] = useState<PhotoEntry[]>([]);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ enabled: false });
+  const [isCarePanelOpen, setIsCarePanelOpen] = useState(false);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
 
   const recognitionRef = useRef<any>(null);
 
-  // Load Simbionte data from localStorage
+  // Load data from localStorage
   useEffect(() => {
     if (!id) return;
     try {
-      const storedData = localStorage.getItem(`simbionte-data-${id}`);
-      if (storedData) {
-        setSimbionteData(JSON.parse(storedData));
+      const storedPhotos = localStorage.getItem(`fungi-photos-${id}`);
+      if (storedPhotos) {
+        setPhotoHistory(JSON.parse(storedPhotos));
+      }
+      const storedNotifications = localStorage.getItem(`fungi-notifications-${id}`);
+      if (storedNotifications) {
+        setNotificationSettings(JSON.parse(storedNotifications));
       }
     } catch (e) {
-      console.error("Failed to load simbionte data from localStorage", e);
+      console.error("Failed to load data from localStorage", e);
     }
   }, [id]);
 
-  // Save Simbionte data to localStorage
-  const saveSimbionteData = useCallback((data: SimbionteData) => {
+  const savePhotoHistory = useCallback((photos: PhotoEntry[]) => {
     if (!id) return;
     try {
-      localStorage.setItem(`simbionte-data-${id}`, JSON.stringify(data));
-      setSimbionteData(data);
+      localStorage.setItem(`fungi-photos-${id}`, JSON.stringify(photos));
+      setPhotoHistory(photos);
     } catch (e) {
-      console.error("Failed to save simbionte data to localStorage", e);
+      console.error("Failed to save photo history to localStorage", e);
+      toast({ variant: 'destructive', title: 'Error al guardar foto', description: 'No se pudo guardar la foto en el almacenamiento local.'});
     }
+  }, [id, toast]);
+
+  const saveNotificationSettings = useCallback((settings: NotificationSettings) => {
+      if (!id) return;
+      try {
+          localStorage.setItem(`fungi-notifications-${id}`, JSON.stringify(settings));
+          setNotificationSettings(settings);
+      } catch (e) {
+        console.error("Failed to save notification settings", e);
+      }
   }, [id]);
 
 
@@ -175,12 +197,11 @@ export default function MycoSimbiontePage() {
       <Hud 
         age={lote ? getAgeInDays(lote.created_at) : 0} 
         mood={mycoMood} 
-        neuronalEnergy={simbionteData.energy} 
       />
 
       <div className="absolute top-4 right-4 z-20">
-         <Button variant="ghost" onClick={() => setPanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white">
-            <BrainCircuit className="mr-2" /> Vías Genéticas
+         <Button variant="ghost" onClick={() => setIsCarePanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white">
+            <BookHeart className="mr-2" /> Cuidados y Progreso
         </Button>
       </div>
 
@@ -217,16 +238,18 @@ export default function MycoSimbiontePage() {
           </Button>
       </footer>
       
-       <GeneticPathwaysPanel 
-            isOpen={panelOpen} 
-            onClose={() => setPanelOpen(false)}
-            simbionteData={simbionteData}
-            onUnlock={(pathId, cost) => {
-                const newData = {
-                    energy: simbionteData.energy - cost,
-                    unlockedPaths: [...simbionteData.unlockedPaths, pathId]
-                };
-                saveSimbionteData(newData);
+       <CareProgressPanel
+            isOpen={isCarePanelOpen}
+            onClose={() => setIsCarePanelOpen(false)}
+            photoHistory={photoHistory}
+            notificationSettings={notificationSettings}
+            onPhotoUpload={(photo) => {
+                const newHistory = [...photoHistory, photo];
+                savePhotoHistory(newHistory);
+            }}
+            onNotificationToggle={(enabled) => {
+                const newSettings = { ...notificationSettings, enabled };
+                saveNotificationSettings(newSettings);
             }}
        />
     </main>
