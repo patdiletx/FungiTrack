@@ -100,6 +100,9 @@ const mycoMindFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error("Myco-Mind AI failed to generate a valid response. The prompt returned a null output.");
+    }
+    return output;
   }
 );
