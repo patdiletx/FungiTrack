@@ -74,11 +74,11 @@ export default function MycoSimbiontePage() {
 
   const recognitionRef = useRef<any>(null);
   const initialCallMade = useRef(false);
+  const isInitialMount = useRef(true);
   
   const dynamicStatus = lote ? getDynamicStatus(lote) : 'Cargando...';
 
-  // --- Data Persistence ---
-  const updateSettings = async (newSettings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'>>) => {
+  const updateSettings = useCallback(async (newSettings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'>>) => {
       if (!id) return;
       try {
           await updateKitSettingsAction(id, newSettings);
@@ -86,7 +86,7 @@ export default function MycoSimbiontePage() {
           console.error("Failed to save settings to DB", e);
           toast({ variant: 'destructive', title: 'Error de Sincronización', description: 'No se pudieron guardar los cambios en el servidor.'});
       }
-  };
+  }, [id, toast]);
 
   const callMycoMind = useCallback(async (input: any) => {
       if (!lote) return;
@@ -130,7 +130,27 @@ export default function MycoSimbiontePage() {
       } finally {
         setMycoState('idle');
       }
-  }, [lote, coordinates, dynamicStatus, id]);
+  }, [lote, coordinates, dynamicStatus, updateSettings]);
+
+  // Handle side-effects of coordinates changing (save to DB, call AI)
+  useEffect(() => {
+    // We don't want this effect to run on the initial render.
+    // The initial data load and AI call are handled by other useEffects.
+    // This effect is specifically for when the user *changes* the coordinates.
+    if (isInitialMount.current) {
+        isInitialMount.current = false;
+        return;
+    }
+    
+    if (coordinates) {
+        updateSettings({ coordinates: coordinates });
+        toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local.' });
+        callMycoMind({ 
+            interactionType: 'QUERY', 
+            userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' 
+        });
+    }
+  }, [coordinates]); // This dependency is key.
 
   const onPhotoUpload = (photo: PhotoEntry) => {
     const newHistory = [...photoHistory, photo];
@@ -146,11 +166,9 @@ export default function MycoSimbiontePage() {
      }
   };
   
+  // This function now ONLY updates the state. The useEffect handles the rest.
   const onCoordinatesChange = (coords: Coordinates) => {
     setCoordinates(coords);
-    updateSettings({ coordinates: coords });
-    toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local.' });
-    callMycoMind({ interactionType: 'QUERY', userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' });
   };
 
   // Speech Recognition Setup
@@ -205,7 +223,13 @@ export default function MycoSimbiontePage() {
       const settings = loteData.kit_settings?.[0];
       setPhotoHistory(settings?.photo_history || []);
       setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
-      setCoordinates(settings?.coordinates || null);
+      
+      // Important: Set initial coordinates BEFORE other effects run
+      if (settings?.coordinates) {
+        setCoordinates(settings.coordinates);
+      } else {
+        isInitialMount.current = false; // No initial coords, so we can allow the effect to run on first change
+      }
 
       if (settings?.last_ai_response) {
           const { response, mood, weather: weatherData } = settings.last_ai_response;
@@ -233,16 +257,15 @@ export default function MycoSimbiontePage() {
 
   // Initial MycoMind call
   useEffect(() => {
-    if (loading || initialCallMade.current) {
+    if (loading || initialCallMade.current || !lote) {
         return;
     }
     
-    // Check if lote and its settings are loaded
-    const settingsLoaded = !!lote;
-    if (!settingsLoaded) return;
-    
-    const needsCallForInit = !displayedMessage;
-    const needsCallForStaleWeather = coordinates && !weather;
+    const settingsLoaded = lote.kit_settings?.length > 0;
+    const lastResponse = settingsLoaded ? lote.kit_settings![0].last_ai_response : null;
+
+    const needsCallForInit = !lastResponse;
+    const needsCallForStaleWeather = coordinates && !lastResponse?.weather;
 
     if (needsCallForInit || needsCallForStaleWeather) {
       initialCallMade.current = true;
@@ -250,7 +273,7 @@ export default function MycoSimbiontePage() {
         interactionType: 'INITIALIZE', 
       });
     }
-  }, [lote, loading, callMycoMind, displayedMessage, coordinates, weather]);
+  }, [lote, loading, callMycoMind, coordinates]);
 
   // Handles scheduling and firing notifications
   useEffect(() => {
