@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/upsell-strategy.ts';
 import '@/ai/flows/batch-assistant-flow.ts';
+import '@/ai/flows/diagnose-contamination-flow.ts';
