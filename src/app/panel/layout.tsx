@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { PanelSidebar } from '@/components/panel/PanelSidebar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/lib/supabaseClient';
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';
+import { createClient } from '@/lib/supabase/client';
 
 export default function PanelLayout({
   children,
@@ -14,6 +14,7 @@ export default function PanelLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const supabase = createClient();
   const [isAuth, setIsAuth] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function PanelLayout({
       subscription?.unsubscribe();
     };
 
-  }, [router]);
+  }, [router, supabase.auth]);
 
 
   if (isAuth === undefined) {

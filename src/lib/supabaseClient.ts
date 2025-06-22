@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import type { Lote, Producto, Formulacion } from './types';
 
 // Specify the database schema for type safety
@@ -29,18 +28,3 @@ export type Database = {
     };
   };
 };
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase URL or Anon Key is missing. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-}
-
-try {
-    new URL(supabaseUrl);
-} catch (error) {
-    throw new Error(`Invalid Supabase URL: ${supabaseUrl}. Please check your .env.local file.`);
-}
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

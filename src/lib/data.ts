@@ -53,12 +53,6 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
 
 export const getFormulaciones = async (): Promise<Formulacion[]> => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    // If no user, RLS will prevent fetching, so return empty array.
-    return [];
-  }
-  
   const { data, error } = await supabase.from('formulaciones').select('*').order('puntuacion', { ascending: false });
   if (error) {
     console.error('Error fetching formulaciones:', error.message);

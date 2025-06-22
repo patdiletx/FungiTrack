@@ -15,11 +15,12 @@ import { Button } from '@/components/ui/button';
 import { LogOut, LayoutDashboard, PlusCircle, Box, QrCode, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 
 export function PanelSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const supabase = createClient();
 
   const handleLogout = async () => {
     if (supabase) {

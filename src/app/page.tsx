@@ -10,10 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { FungiTrackLogo } from "@/components/FungiTrackLogo";
 import { LogIn, KeyRound, AtSign, Loader2, UserPlus } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/hooks/use-toast';
 import { AuthError } from '@supabase/supabase-js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { createClient } from '@/lib/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Por favor, ingresa un email válido." }),
@@ -28,6 +28,7 @@ const registerSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const supabase = createClient();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
