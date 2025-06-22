@@ -13,7 +13,7 @@ export interface Lote {
   created_at: string;
   id_producto: string;
   unidades_producidas: number;
-  id_formulacion: string;
+  id_formulacion?: string | null;
   notas_sustrato?: string | null;
   estado: string;
   incidencias?: string | null;

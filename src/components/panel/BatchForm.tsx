@@ -127,7 +127,7 @@ export function BatchForm({ productos, formulaciones, lote }: BatchFormProps) {
     } catch (error) {
       toast({
         title: "Error al crear lote",
-        description: "Hubo un problema al guardar los datos. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "Hubo un problema al guardar los datos. Inténtalo de nuevo.",
         variant: 'destructive',
       });
     }

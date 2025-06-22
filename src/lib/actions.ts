@@ -60,7 +60,10 @@ export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado'
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated to create lote.');
 
-  const newLoteData = { ...data, id: uuidv4(), estado: 'En Incubación', id_operador: user.id };
+  // Destructure id_formulacion to prevent it from being sent to the DB if the column doesn't exist
+  const { id_formulacion, ...loteDataToInsert } = data;
+
+  const newLoteData = { ...loteDataToInsert, id: uuidv4(), estado: 'En Incubación', id_operador: user.id };
 
   const { data: newLote, error } = await supabase
     .from('lotes')
@@ -68,7 +71,11 @@ export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado'
     .select()
     .single();
 
-  if (error) throw new Error('Failed to create lote: ' + error.message);
+  if (error) {
+    console.error('Supabase error creating lote:', error.message);
+    throw new Error(`Error de base de datos: ${error.message}`);
+  }
+
   revalidatePath('/panel');
   return newLote;
 };
