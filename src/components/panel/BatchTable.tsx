@@ -4,8 +4,7 @@ import { Lote } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { ClientFormattedDate } from "@/components/ClientFormattedDate";
 
 interface BatchTableProps {
     lotes: Lote[];
@@ -47,7 +46,7 @@ export function BatchTable({ lotes }: BatchTableProps) {
                             <div className="text-xs text-muted-foreground truncate">{lote.id}</div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                            {format(new Date(lote.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+                            <ClientFormattedDate date={lote.created_at} formatString="d 'de' MMMM, yyyy" placeholderLength={20} />
                         </TableCell>
                         <TableCell className="text-right">{lote.unidades_producidas}</TableCell>
                         <TableCell>

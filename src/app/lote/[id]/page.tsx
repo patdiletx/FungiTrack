@@ -4,10 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, Droplets, Package, Sun, Thermometer, Wind } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { UpsellSection } from '@/components/UpsellSection';
 import { ProductImage } from '@/components/ProductImage';
+import { ClientFormattedDate } from '@/components/ClientFormattedDate';
 
 type Props = {
   params: { id: string };
@@ -62,7 +61,7 @@ export default async function PublicLotePage({ params }: Props) {
                     <Calendar className="h-6 w-6 text-primary" />
                     <span className="font-semibold">Fecha de Elaboración</span>
                 </div>
-                <span className="font-mono text-sm">{format(new Date(lote.created_at), "dd 'de' MMMM, yyyy", { locale: es })}</span>
+                <ClientFormattedDate date={lote.created_at} formatString="dd 'de' MMMM, yyyy" className="font-mono text-sm" placeholderLength={22} />
             </div>
             <Separator />
             <div>

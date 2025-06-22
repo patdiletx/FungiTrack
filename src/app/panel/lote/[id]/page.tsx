@@ -5,13 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Printer, Calendar, Hash, Package, FlaskConical, AlertTriangle, User, StickyNote } from "lucide-react";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { BatchForm } from "@/components/panel/BatchForm";
 import Link from 'next/link';
 import { BatchAssistant } from "@/components/panel/BatchAssistant";
 import { ContaminationChecker } from "@/components/panel/ContaminationChecker";
 import { DeleteBatchButton } from "@/components/panel/DeleteBatchButton";
+import { ClientFormattedDate } from "@/components/ClientFormattedDate";
 
 type Props = {
   params: { id: string };
@@ -78,7 +77,7 @@ export default async function LoteDetailPage({ params }: Props) {
                 <span className="text-muted-foreground">Fecha Elaboración</span>
                 <span className="font-semibold text-right flex items-center gap-2">
                   <Calendar className="h-4 w-4"/>
-                  {format(new Date(lote.created_at), "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
+                  <ClientFormattedDate date={lote.created_at} formatString="d 'de' MMMM, yyyy 'a las' HH:mm" placeholderLength={32}/>
                 </span>
               </div>
               <Separator/>
