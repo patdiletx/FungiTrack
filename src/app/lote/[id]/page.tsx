@@ -40,6 +40,15 @@ type DisplayMessage = {
     id: number;
     text: string;
 };
+type Coordinates = {
+    latitude: number;
+    longitude: number;
+};
+type WeatherData = {
+    temperature: number;
+    humidity: number;
+};
+
 
 const defaultNotificationSettings: NotificationSettings = {
     enabled: false,
@@ -70,8 +79,34 @@ export default function MycoSimbiontePage() {
   const [myKits, setMyKits] = useState<Kit[]>([]);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const recognitionRef = useRef<any>(null);
+
+  // Request Geolocation
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setCoordinates({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                });
+            },
+            (error) => {
+                // Don't bother the user if they deny, just proceed without weather data.
+                console.warn(`Geolocation error: ${error.message}`);
+                toast({
+                    title: 'Ubicación no disponible',
+                    description: 'No se pudo obtener el clima local. La IA funcionará sin datos ambientales.',
+                    variant: 'destructive',
+                    duration: 5000,
+                });
+            }
+        );
+    }
+  }, [toast]);
 
   // Load data from localStorage
   useEffect(() => {
@@ -84,7 +119,6 @@ export default function MycoSimbiontePage() {
       const storedNotifications = localStorage.getItem(`fungi-notifications-${id}`);
       if (storedNotifications) {
         const parsedSettings = JSON.parse(storedNotifications);
-        // Safely merge with defaults to prevent crashes from outdated stored data
         const mergedSettings: NotificationSettings = {
             ...defaultNotificationSettings,
             ...parsedSettings,
@@ -120,8 +154,6 @@ export default function MycoSimbiontePage() {
       try {
           localStorage.setItem(`fungi-notifications-${id}`, JSON.stringify(settings));
           setNotificationSettings(settings);
-          // Here you would add logic to schedule/cancel actual browser notifications
-          // based on the new settings. For now, we just save them.
           if(settings.enabled) {
             toast({ title: 'Alertas actualizadas', description: 'Tus recordatorios de cuidado han sido guardados.' });
           }
@@ -134,8 +166,11 @@ export default function MycoSimbiontePage() {
   const callMycoMind = useCallback(async (input: any) => {
       setMycoState('thinking');
       try {
-        const { response, mood } = await mycoMind(input);
+        const { response, mood, weather: weatherData } = await mycoMind(input);
         setMycoMood(mood);
+        if (weatherData) {
+            setWeather(weatherData);
+        }
         setDisplayedMessage({ id: Date.now(), text: response });
       } catch (e) {
         console.error("Error calling Myco-Mind AI:", e);
@@ -179,6 +214,8 @@ export default function MycoSimbiontePage() {
               ageInDays: getAgeInDays(lote.created_at),
               status: lote.estado,
               incidents: lote.incidencias || undefined,
+              latitude: coordinates?.latitude,
+              longitude: coordinates?.longitude,
           }
       });
     };
@@ -187,7 +224,7 @@ export default function MycoSimbiontePage() {
         toast({ variant: "destructive", title: "Error de voz", description: event.error });
     }
     recognitionRef.current = recognition;
-  }, [lote, callMycoMind, toast]);
+  }, [lote, callMycoMind, toast, coordinates]);
 
   // Initial Data Fetch
   useEffect(() => {
@@ -212,21 +249,26 @@ export default function MycoSimbiontePage() {
           console.error("Failed to update kit list in localStorage", e);
       }
 
-      const { mood, response } = await mycoMind({ 
+      const { mood, response, weather: weatherData } = await mycoMind({ 
         interactionType: 'INITIALIZE', 
         loteContext: {
             productName: loteData.productos.nombre,
             ageInDays: getAgeInDays(loteData.created_at),
             status: loteData.estado,
             incidents: loteData.incidencias || undefined,
+            latitude: coordinates?.latitude,
+            longitude: coordinates?.longitude,
       }});
       setMycoMood(mood);
+      if (weatherData) {
+          setWeather(weatherData);
+      }
       setDisplayedMessage({ id: Date.now(), text: response });
 
       setLoading(false);
     }
     fetchData();
-  }, [id, callMycoMind]);
+  }, [id, callMycoMind, coordinates]);
 
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
@@ -250,6 +292,7 @@ export default function MycoSimbiontePage() {
           mood={mycoMood}
           status={lote?.estado || 'Cargando...'}
           productName={lote?.productos?.nombre || 'Kit de Cultivo'}
+          weather={weather}
         />
 
         <Button variant="ghost" onClick={() => setIsCarePanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white shrink-0">
