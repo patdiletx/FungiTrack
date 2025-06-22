@@ -65,18 +65,14 @@ const getAgeInDays = (creationDate: string | Date): number => {
 };
 
 const getDynamicStatus = (lote: Lote): string => {
-    // Manual override states that stop the automatic progression.
-    const overrideStates = ['Contaminado', 'Vendido', 'Listo para Venta'];
-    if (overrideStates.includes(lote.estado)) {
-        return lote.estado;
-    }
-
     const age = getAgeInDays(lote.created_at);
 
-    // Age-based automatic progression
+    // The user's kit status is determined purely by its age.
+    // The producer-set batch status (`lote.estado`) and batch-level `incidencias`
+    // are intentionally ignored on this page to provide an independent lifecycle for each kit.
     if (age <= 14) return 'En Incubación';
     if (age <= 25) return 'En Fructificación';
-    return 'Listo para Cosecha'; // New automatic state
+    return 'Listo para Cosecha';
 };
 
 
@@ -193,7 +189,7 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: getDynamicStatus(lote),
-              incidencias: lote.incidencias || undefined,
+              // Batch-level incidents from the producer are NOT passed to the user's AI.
               latitude: coordinates?.latitude,
               longitude: coordinates?.longitude,
             }
