@@ -66,12 +66,12 @@ export default function PrintPreviewPage() {
       </div>
       <div id="print-area" className="p-0 grid grid-cols-2 sm:grid-cols-3 gap-0 break-after-page">
         {Array.from({ length: lote.unidades_producidas }).map((_, i) => (
-          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-1 w-min justify-self-center" style={{backgroundColor: '#F5F5DC'}}>
-            <QrCode value={publicUrl} size={160} />
-            <div className='mt-1 space-y-0.5'>
-                <p className="text-sm font-bold leading-tight">{lote.productos?.nombre}</p>
-                <p className="text-xs leading-tight">Lote: {lote.id.substring(0, 8)}</p>
-                <p className="text-xs leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
+          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-2 w-min justify-self-center" style={{backgroundColor: '#F5F5DC'}}>
+            <QrCode value={publicUrl} size={200} />
+            <div className='mt-2 space-y-1'>
+                <p className="text-base font-bold leading-tight">{lote.productos?.nombre}</p>
+                <p className="text-sm leading-tight">Lote: {lote.id.substring(0, 8)}</p>
+                <p className="text-sm leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
             </div>
           </div>
         ))}
