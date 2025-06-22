@@ -6,17 +6,17 @@ export type Database = {
     Tables: {
       lotes: {
         Row: Lote;
-        Insert: Omit<Lote, 'id' | 'created_at' | 'productos'>;
+        Insert: Omit<Lote, 'created_at' | 'productos'>;
         Update: Partial<Omit<Lote, 'id' | 'created_at' | 'productos'>>;
       };
       productos: {
         Row: Producto;
-        Insert: Omit<Producto, 'id' | 'created_at'>;
+        Insert: Omit<Producto, 'created_at'>;
         Update: Partial<Omit<Producto, 'id' | 'created_at'>>;
       };
       formulaciones: {
         Row: Formulacion;
-        Insert: Omit<Formulacion, 'id' | 'created_at'>;
+        Insert: Omit<Formulacion, 'created_at'>;
         Update: Partial<Omit<Formulacion, 'id' | 'created_at'>>;
       }
     };
