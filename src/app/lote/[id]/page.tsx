@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, Loader2, BookHeart } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote } from '@/lib/types';
-import { mycoMind, type MycoMindInput, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
+import { mycoMind, type MycoMindOutput } from '@/ai/flows/myco-mind-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Hud } from '@/components/Simbionte/Hud';
@@ -36,6 +36,12 @@ type DisplayMessage = {
     text: string;
 };
 
+const defaultNotificationSettings: NotificationSettings = {
+    enabled: false,
+    watering: { enabled: true, time: '09:00' },
+    aeration: { enabled: true, times: ['09:00', '15:00', '21:00'] },
+};
+
 const getAgeInDays = (creationDate: string | Date): number => {
     const created = new Date(creationDate);
     const now = new Date();
@@ -54,11 +60,7 @@ export default function MycoSimbiontePage() {
   const [mycoMood, setMycoMood] = useState<MycoMindOutput['mood']>('Enfoque');
   
   const [photoHistory, setPhotoHistory] = useState<PhotoEntry[]>([]);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-      enabled: false,
-      watering: { enabled: true, time: '09:00' },
-      aeration: { enabled: true, times: ['09:00', '15:00', '21:00'] },
-  });
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
   const [isCarePanelOpen, setIsCarePanelOpen] = useState(false);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
@@ -75,7 +77,21 @@ export default function MycoSimbiontePage() {
       }
       const storedNotifications = localStorage.getItem(`fungi-notifications-${id}`);
       if (storedNotifications) {
-        setNotificationSettings(JSON.parse(storedNotifications));
+        const parsedSettings = JSON.parse(storedNotifications);
+        // Safely merge with defaults to prevent crashes from outdated stored data
+        const mergedSettings: NotificationSettings = {
+            ...defaultNotificationSettings,
+            ...parsedSettings,
+            watering: {
+                ...defaultNotificationSettings.watering,
+                ...(parsedSettings.watering || {}),
+            },
+            aeration: {
+                ...defaultNotificationSettings.aeration,
+                ...(parsedSettings.aeration || {}),
+            },
+        };
+        setNotificationSettings(mergedSettings);
       }
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
@@ -109,7 +125,7 @@ export default function MycoSimbiontePage() {
   }, [id, toast]);
 
 
-  const callMycoMind = useCallback(async (input: MycoMindInput) => {
+  const callMycoMind = useCallback(async (input: MycoMindOutput) => {
       setMycoState('thinking');
       try {
         const { response, mood } = await mycoMind(input);
@@ -192,7 +208,7 @@ export default function MycoSimbiontePage() {
       setLoading(false);
     }
     fetchData();
-  }, [id]);
+  }, [id, callMycoMind]);
 
   const handleToggleListening = () => {
     if (mycoState !== 'idle' || !recognitionRef.current) return;
