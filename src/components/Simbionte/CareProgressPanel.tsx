@@ -1,19 +1,20 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Bell, Camera, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
-import { type PhotoEntry, type NotificationSettings } from "@/app/lote/[id]/page";
+import { Bell, Camera, Image as ImageIcon, Plus, Trash2, Network } from "lucide-react";
+import { type PhotoEntry, type NotificationSettings, type Kit } from "@/app/lote/[id]/page";
 import { ScrollArea } from "../ui/scroll-area";
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface CareProgressPanelProps {
     isOpen: boolean;
@@ -22,6 +23,8 @@ interface CareProgressPanelProps {
     notificationSettings: NotificationSettings;
     onPhotoUpload: (photo: PhotoEntry) => void;
     onSettingsChange: (settings: NotificationSettings) => void;
+    myKits: Kit[];
+    currentKitId: string;
 }
 
 export function CareProgressPanel({
@@ -31,6 +34,8 @@ export function CareProgressPanel({
     notificationSettings,
     onPhotoUpload,
     onSettingsChange,
+    myKits,
+    currentKitId
 }: CareProgressPanelProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,6 +129,37 @@ export function CareProgressPanel({
 
                 <ScrollArea className="flex-grow pr-4 -mr-6 mt-4">
                     <div className="space-y-6">
+                        {/* --- Kit Switcher --- */}
+                        <div className="p-4 rounded-lg bg-black/20 border border-white/10">
+                            <h3 className="text-lg font-bold flex items-center gap-3 mb-4">
+                                <Network className="h-6 w-6 text-[#70B0F0]" />
+                                Red de Simbiontes
+                            </h3>
+                            <div className="space-y-2">
+                                {myKits.length <= 1 && (
+                                    <p className="text-slate-400 text-sm text-center py-2">
+                                        Escanea otro kit para añadirlo a tu red.
+                                    </p>
+                                )}
+                                {myKits.map(kit => (
+                                    <Link key={kit.id} href={`/lote/${kit.id}`} passHref>
+                                        <Button
+                                            variant={kit.id === currentKitId ? "secondary" : "ghost"}
+                                            className="w-full justify-start text-left h-auto py-2"
+                                            disabled={kit.id === currentKitId}
+                                        >
+                                            {kit.name}
+                                        </Button>
+                                    </Link>
+                                ))}
+                                <Link href="/scan" passHref>
+                                     <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent hover:bg-white/10">
+                                        <Plus className="mr-2 h-4 w-4" /> Añadir otro Simbionte
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+
                         {/* --- Notification Settings --- */}
                         <div className="p-4 rounded-lg bg-black/20 border border-white/10 space-y-4">
                             <div className="flex items-center justify-between">

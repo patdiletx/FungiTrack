@@ -18,6 +18,11 @@ export type PhotoEntry = {
     date: string;
 }
 
+export type Kit = {
+    id: string;
+    name: string;
+}
+
 export type NotificationSettings = {
     enabled: boolean;
     watering: {
@@ -62,6 +67,7 @@ export default function MycoSimbiontePage() {
   const [photoHistory, setPhotoHistory] = useState<PhotoEntry[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
   const [isCarePanelOpen, setIsCarePanelOpen] = useState(false);
+  const [myKits, setMyKits] = useState<Kit[]>([]);
   
   const [displayedMessage, setDisplayedMessage] = useState<DisplayMessage | null>(null);
 
@@ -194,6 +200,18 @@ export default function MycoSimbiontePage() {
       }
       setLote(loteData);
       
+      try {
+        const storedKitsRaw = localStorage.getItem('fungi-my-kits');
+        let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
+        if (!kits.some(k => k.id === loteData.id)) {
+            kits.push({ id: loteData.id, name: loteData.productos.nombre });
+            localStorage.setItem('fungi-my-kits', JSON.stringify(kits));
+        }
+        setMyKits(kits);
+      } catch (e) {
+          console.error("Failed to update kit list in localStorage", e);
+      }
+
       const { mood, response } = await mycoMind({ 
         interactionType: 'INITIALIZE', 
         loteContext: {
@@ -277,6 +295,8 @@ export default function MycoSimbiontePage() {
             onClose={() => setIsCarePanelOpen(false)}
             photoHistory={photoHistory}
             notificationSettings={notificationSettings}
+            myKits={myKits}
+            currentKitId={id}
             onPhotoUpload={(photo) => {
                 const newHistory = [...photoHistory, photo];
                 savePhotoHistory(newHistory);
