@@ -5,7 +5,6 @@ import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './t
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from './supabase/server';
 import { revalidatePath } from 'next/cache';
-import { useRouter } from 'next/navigation';
 
 // --- PRODUCTOS ---
 
