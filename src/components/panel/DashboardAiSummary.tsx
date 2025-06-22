@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Sparkles, Lightbulb, Bot, ArrowRight, Loader2 } from 'lucide-react';
+import { AlertTriangle, Sparkles, Lightbulb, Bot, ArrowRight, Loader2, Check } from 'lucide-react';
 import type { BatchSummaryOutput } from '@/ai/flows/batch-summary-flow';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
 import { dismissLoteAlertAction } from '@/lib/actions';
+import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 interface DashboardAiSummaryProps {
   summary: BatchSummaryOutput | null;
@@ -16,6 +18,7 @@ interface DashboardAiSummaryProps {
 
 export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isDismissing, setIsDismissing] = useState<string | null>(null);
 
   // Use state to manage the summary for optimistic updates
@@ -43,28 +46,19 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
     );
   }
 
-  const navigateToLote = async (loteId: string, reason: string) => {
+  const handleDismiss = async (loteId: string, reason: string) => {
     const alertKey = `${loteId}-${reason}`;
     setIsDismissing(alertKey);
-
-    // Optimistic UI update: remove the alert from the local state immediately
-    if (currentSummary) {
-      setCurrentSummary({
-        ...currentSummary,
-        attentionRequired: currentSummary.attentionRequired.filter(item => !(item.loteId === loteId && item.reason === reason)),
-      });
-    }
-
     try {
-      // Perform the server action in the background
-      await dismissLoteAlertAction(loteId, reason);
-      router.push(`/panel/lote/${loteId}`);
+        await dismissLoteAlertAction(loteId, reason);
+        toast({ title: "Alerta Descartada", description: "La alerta ha sido marcada como revisada."});
+        router.refresh(); // This will refetch server data and update the component
     } catch (error) {
         console.error("Failed to dismiss alert:", error);
-        // If the server action fails, revert the optimistic update
-        setCurrentSummary(summary);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo descartar la alerta.'});
         setIsDismissing(null);
     }
+    // No need to set isDismissing to null in finally, as the component will re-render
   };
   
   const handleHighlightClick = (loteId: string) => {
@@ -92,19 +86,23 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
                   <AlertTriangle className="h-4 w-4" />
                   <div className="flex justify-between items-center w-full">
                     <div>
-                      <AlertTitle>{item.productName}</AlertTitle>
+                      <AlertTitle>
+                        <Link href={`/panel/lote/${item.loteId}`} className="hover:underline">
+                          {item.productName}
+                        </Link>
+                      </AlertTitle>
                       <AlertDescription>{item.reason}</AlertDescription>
                     </div>
                     <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => navigateToLote(item.loteId, item.reason)}
+                        onClick={() => handleDismiss(item.loteId, item.reason)}
                         disabled={isDismissing === `${item.loteId}-${item.reason}`}
                     >
                         {isDismissing === `${item.loteId}-${item.reason}` ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                            <>Ver Lote <ArrowRight className="ml-2 h-4 w-4" /></>
+                            <><Check className="mr-2 h-4 w-4" />Descartar</>
                         )}
                     </Button>
                   </div>
@@ -126,11 +124,16 @@ export function DashboardAiSummary({ summary }: DashboardAiSummaryProps) {
                         <Sparkles className="h-4 w-4" />
                         <div className="flex justify-between items-center w-full">
                             <div>
-                                <AlertTitle>{item.productName}</AlertTitle>
+                                <AlertTitle>
+                                  <Link href={`/panel/lote/${item.loteId}`} className="hover:underline">
+                                    {item.productName}
+                                  </Link>
+                                </AlertTitle>
                                 <AlertDescription>{item.reason}</AlertDescription>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => handleHighlightClick(item.loteId)}>
-                                Ver Lote <ArrowRight className="ml-2 h-4 w-4" />
+                            <Button variant="ghost" size="icon" onClick={() => handleHighlightClick(item.loteId)}>
+                                <ArrowRight className="h-4 w-4" />
+                                <span className="sr-only">Ver Lote</span>
                             </Button>
                         </div>
                     </Alert>
