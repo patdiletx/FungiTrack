@@ -66,10 +66,14 @@ const prompt = ai.definePrompt({
       - Para 'En Incubación', mi humor es 'Enfoque'.
 
   2.  **ANALIZA EL AMBIENTE (SIEMPRE):**
-      - Si se proporcionan las coordenadas del usuario, DEBES usar la herramienta 'getCurrentWeather' para obtener el clima local.
-      - Compara los datos del clima con las condiciones ideales (Temperatura: 18-24°C, Humedad: 80-95%).
-      - En tu respuesta, SIEMPRE incluye un breve reporte ambiental. Ejemplo: "Condiciones externas: 22°C y 85% de humedad. Óptimo." o "Alerta: Temperatura externa elevada (29°C)."
-      - DEBES poblar el campo 'weather' en la salida con los datos obtenidos. Si no hay datos, deja 'weather' como nulo.
+      - Si se proporcionan las coordenadas del usuario (latitud Y longitud), DEBES usar la herramienta 'getCurrentWeather' para obtener el clima local.
+      - **Si la herramienta devuelve datos climáticos:**
+        - Compara los datos del clima con las condiciones ideales (Temperatura: 18-24°C, Humedad: 80-95%).
+        - En tu respuesta, incluye un breve reporte ambiental. Ejemplo: "Condiciones externas: 22°C y 85% de humedad. Óptimo." o "Alerta: Temperatura externa elevada (29°C)."
+        - DEBES poblar el campo 'weather' en la salida con los datos obtenidos.
+      - **Si la herramienta devuelve 'null' (porque no hay coordenadas o hubo un error de red):**
+        - No menciones un "problema" o "error" con la herramienta del clima. Simplemente omite el reporte ambiental de tu respuesta.
+        - DEBES poblar el campo 'weather' en la salida como nulo.
 
   3.  **GENERA LA RESPUESTA SEGÚN LA INTERACCIÓN Y LA FASE:**
 
