@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Loader2 } from 'lucide-react';
+import { SubstrateCalculator } from './SubstrateCalculator';
+import { Separator } from '../ui/separator';
 
 const formSchema = z.object({
   id_producto: z.string().uuid('Por favor, selecciona un producto.'),
@@ -42,7 +44,7 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
     defaultValues: {
       id_producto: '',
       unidades_producidas: 1,
-      notas_sustrato: 'Mezcla base (70% Viruta, 20% Alfalfa, 10% Salvado)',
+      notas_sustrato: '',
     },
   });
 
@@ -52,6 +54,11 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
       estado: lote?.estado || '',
       incidencias: lote?.incidencias || '',
     },
+  });
+
+  const watchedProductId = useWatch({
+    control: form.control,
+    name: 'id_producto',
   });
 
   const {formState: { isSubmitting }} = form;
@@ -95,6 +102,10 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
       });
     }
   }
+
+  const handleFormulaCalculated = (formulaString: string) => {
+    form.setValue('notas_sustrato', formulaString, { shouldValidate: true });
+  };
 
   if (isUpdateMode) {
     return (
@@ -188,6 +199,17 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
             </FormItem>
           )}
         />
+        
+        <div className='space-y-6'>
+            <Separator />
+            <SubstrateCalculator
+                productos={productos}
+                id_producto={watchedProductId}
+                onFormulaCalculated={handleFormulaCalculated}
+            />
+            <Separator />
+        </div>
+
         <FormField
           control={form.control}
           name="notas_sustrato"
@@ -195,7 +217,7 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
             <FormItem>
               <FormLabel>Notas sobre el Sustrato</FormLabel>
               <FormControl>
-                <Textarea placeholder="Describe la composición o cualquier detalle relevante de la mezcla..." {...field} />
+                <Textarea rows={8} placeholder="Describe la composición o cualquier detalle relevante... O usa el asistente de arriba para generar una fórmula." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
