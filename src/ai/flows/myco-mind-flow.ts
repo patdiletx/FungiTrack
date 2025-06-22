@@ -18,7 +18,7 @@ const LoteContextSchema = z.object({
     incidents: z.string().optional().describe("Any registered problems or notes, like contamination."),
 });
 
-export const MycoMindInputSchema = z.object({
+const MycoMindInputSchema = z.object({
   loteContext: LoteContextSchema,
   userMessage: z.string().optional().describe("The user's message to the AI. Can be a question or a statement."),
   interactionType: z.enum(['QUERY', 'HYDRATION', 'INITIALIZE'])
@@ -26,7 +26,7 @@ export const MycoMindInputSchema = z.object({
 });
 export type MycoMindInput = z.infer<typeof MycoMindInputSchema>;
 
-export const MycoMindOutputSchema = z.object({
+const MycoMindOutputSchema = z.object({
   response: z.string().describe("The conversational response from the AI persona 'Myco'."),
   mood: z.enum(['Enfoque', 'Euforia', 'Letargo', 'Estrés']).describe("The current emotional state or 'mood' of Myco, which influences the UI visuals."),
 });
