@@ -125,7 +125,7 @@ export default function MycoSimbiontePage() {
   }, [id, toast]);
 
 
-  const callMycoMind = useCallback(async (input: MycoMindOutput) => {
+  const callMycoMind = useCallback(async (input: any) => {
       setMycoState('thinking');
       try {
         const { response, mood } = await mycoMind(input);
@@ -143,7 +143,7 @@ export default function MycoSimbiontePage() {
   // Speech Recognition Setup
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       toast({
@@ -161,7 +161,7 @@ export default function MycoSimbiontePage() {
     recognition.onstart = () => setMycoState('listening');
     recognition.onend = () => setMycoState('idle');
 
-    recognition.onresult = async (event) => {
+    recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
       if (!transcript.trim() || !lote) return;
       
@@ -211,7 +211,7 @@ export default function MycoSimbiontePage() {
   }, [id, callMycoMind]);
 
   const handleToggleListening = () => {
-    if (mycoState !== 'idle' || !recognitionRef.current) return;
+    if (mycoState === 'thinking' || !recognitionRef.current) return;
     
     if (mycoState === 'listening') {
         recognitionRef.current.stop();
@@ -225,19 +225,19 @@ export default function MycoSimbiontePage() {
   }
 
   return (
-    <main className="flex h-screen w-full flex-col bg-[#201A30] text-slate-100 font-body overflow-hidden">
-      <Hud 
-        age={lote ? getAgeInDays(lote.created_at) : 0} 
-        mood={mycoMood}
-        status={lote?.estado || 'Cargando...'}
-        productName={lote?.productos?.nombre || 'Simbionte'}
-      />
+    <main className="relative flex h-screen w-full flex-col bg-[#201A30] text-slate-100 font-body overflow-hidden">
+      <header className="absolute top-0 left-0 right-0 z-20 flex flex-wrap items-start justify-between gap-4 p-4">
+        <Hud
+          age={lote ? getAgeInDays(lote.created_at) : 0}
+          mood={mycoMood}
+          status={lote?.estado || 'Cargando...'}
+          productName={lote?.productos?.nombre || 'Simbionte'}
+        />
 
-      <div className="absolute top-4 right-4 z-20">
-         <Button variant="ghost" onClick={() => setIsCarePanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white">
-            <BookHeart className="mr-2" /> Cuidados y Progreso
+        <Button variant="ghost" onClick={() => setIsCarePanelOpen(true)} className="text-[#70B0F0] hover:bg-white/10 hover:text-white shrink-0">
+          <BookHeart className="mr-2" /> Cuidados y Progreso
         </Button>
-      </div>
+      </header>
 
       <div className="relative flex-1 w-full h-full flex items-center justify-center p-4">
         <NucleoNeural mood={mycoMood} state={mycoState}/>

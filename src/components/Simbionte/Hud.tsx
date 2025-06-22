@@ -27,14 +27,12 @@ const statusTextColors: { [key: string]: string } = {
 
 export function Hud({ age, mood, status, productName }: HudProps) {
     return (
-        <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
-            <div className="rounded-lg px-4 py-2 text-sm font-semibold backdrop-blur-md bg-black/30 border border-white/10 text-white shadow-lg">
-                <h2 className="font-headline text-lg text-primary">{productName}</h2>
-                <div className="mt-2 space-y-1 text-xs text-slate-300">
-                    <p><span className="font-bold">Edad:</span> {age} días</p>
-                    <p><span className="font-bold">Estado:</span> <span className={cn(statusTextColors[status] || 'text-white', 'font-bold')}>{status}</span></p>
-                    <p><span className="font-bold">Humor IA:</span> <span className={cn(moodTextColors[mood], 'font-bold')}>{mood}</span></p>
-                </div>
+        <div className="rounded-lg px-4 py-2 text-sm font-semibold backdrop-blur-md bg-black/30 border border-white/10 text-white shadow-lg">
+            <h2 className="font-headline text-lg text-primary">{productName}</h2>
+            <div className="mt-2 space-y-1 text-xs text-slate-300">
+                <p><span className="font-bold">Edad:</span> {age} días</p>
+                <p><span className="font-bold">Estado:</span> <span className={cn(statusTextColors[status] || 'text-white', 'font-bold')}>{status}</span></p>
+                <p><span className="font-bold">Humor IA:</span> <span className={cn(moodTextColors[mood], 'font-bold')}>{mood}</span></p>
             </div>
         </div>
     )
