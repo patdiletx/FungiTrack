@@ -64,9 +64,9 @@ export default function PrintPreviewPage() {
             </Button>
           </div>
       </div>
-      <div id="print-area" className="p-2 grid grid-cols-2 sm:grid-cols-3 gap-2 break-after-page">
+      <div id="print-area" className="p-0 grid grid-cols-2 sm:grid-cols-3 gap-0 break-after-page">
         {Array.from({ length: lote.unidades_producidas }).map((_, i) => (
-          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black py-1" style={{backgroundColor: '#F5F5DC'}}>
+          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-1 w-min justify-self-center" style={{backgroundColor: '#F5F5DC'}}>
             <QrCode value={publicUrl} size={160} />
             <div className='mt-1 space-y-0.5'>
                 <p className="text-sm font-bold leading-tight">{lote.productos?.nombre}</p>
