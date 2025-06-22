@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const BatchAssistantInputSchema = z.object({
+const BatchAssistantInputSchema = z.object({
   productName: z.string().describe('The name of the mushroom product.'),
   status: z.string().describe('The current status of the batch (e.g., "En Incubación", "Contaminado").'),
   substrateNotes: z.string().optional().describe('Notes about the substrate mixture.'),
