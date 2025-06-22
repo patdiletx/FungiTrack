@@ -32,7 +32,7 @@ interface DashboardClientProps {
 
 export function DashboardClient({ lotes }: DashboardClientProps) {
     return (
-        <div className="grid gap-6 lg:grid-cols-5">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3">
                 <Card>
                     <CardHeader>
