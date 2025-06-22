@@ -17,10 +17,18 @@ function createClient() {
                     return cookieStore.get(name)?.value;
                 },
                 set(name: string, value: string, options: CookieOptions) {
-                    cookieStore.set(name, value, options);
+                    try {
+                        cookieStore.set(name, value, options);
+                    } catch (error) {
+                        // This can be ignored if you have middleware refreshing user sessions.
+                    }
                 },
                 remove(name: string, options: CookieOptions) {
-                    cookieStore.set(name, '', options);
+                    try {
+                        cookieStore.set(name, '', options);
+                    } catch (error) {
+                        // This can be ignored if you have middleware refreshing user sessions.
+                    }
                 },
             },
         }
