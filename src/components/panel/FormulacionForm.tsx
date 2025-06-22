@@ -3,7 +3,8 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Formulacion, Ingrediente } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { Formulacion } from '@/lib/types';
 import { createFormulacion, updateFormulacion } from '@/lib/mock-db';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -40,6 +41,7 @@ interface FormulacionFormProps {
 }
 
 export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const isUpdateMode = !!formulacion;
 
@@ -79,6 +81,7 @@ export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProp
           description: `La formulación "${values.nombre}" ha sido creada exitosamente.`,
         });
       }
+      router.refresh();
       onFinished();
     } catch (error) {
       toast({
@@ -151,50 +154,60 @@ export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProp
         
         <Separator />
 
-        <div>
+        <div className="space-y-4">
+          <div className="flex justify-between items-baseline">
             <FormLabel>Ingredientes del Sustrato Base</FormLabel>
-            <div className="space-y-3 mt-2">
-                {fields.map((field, index) => (
-                    <div key={field.id} className="flex items-start gap-2">
-                        <FormField
-                            control={form.control}
-                            name={`ingredientes.${index}.nombre`}
-                            render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormControl><Input placeholder="Nombre del ingrediente" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name={`ingredientes.${index}.porcentaje`}
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl><Input type="number" className="w-28" placeholder="%" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
-                ))}
+            <div className={`text-sm font-medium ${Math.abs(totalPercentage - 100) > 0.001 ? 'text-destructive' : 'text-primary'}`}>
+              Total: {totalPercentage.toFixed(2)}%
             </div>
-            <div className='mt-3 flex justify-between items-center'>
-                <Button type="button" variant="outline" size="sm" onClick={() => append({ nombre: '', porcentaje: 0 })}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Añadir Ingrediente
-                </Button>
-                <div className={`text-sm font-medium ${totalPercentage !== 100 ? 'text-destructive' : 'text-primary'}`}>
-                    Total: {totalPercentage.toFixed(2)}%
-                </div>
-            </div>
-            {errors.ingredientes && !errors.ingredientes.root && (
+          </div>
+          
+          <div className="space-y-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="flex flex-col sm:flex-row items-start sm:items-end gap-2 rounded-lg border bg-background p-2">
+                <FormField
+                  control={form.control}
+                  name={`ingredientes.${index}.nombre`}
+                  render={({ field }) => (
+                    <FormItem className="flex-1 w-full">
+                      <FormLabel className="sr-only">Nombre del Ingrediente</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nombre del ingrediente" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`ingredientes.${index}.porcentaje`}
+                  render={({ field }) => (
+                    <FormItem className="w-full sm:w-32">
+                      <FormLabel className="sr-only">Porcentaje</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="%" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <span className="sr-only">Eliminar</span>
+                 </Button>
+              </div>
+            ))}
+          </div>
+          
+          <Button type="button" variant="outline" size="sm" onClick={() => append({ nombre: '', porcentaje: 0 })}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Añadir Ingrediente
+          </Button>
+
+          {errors.ingredientes && !errors.ingredientes.root && (
                  <p className="text-sm font-medium text-destructive">{errors.ingredientes.message}</p>
             )}
-            {errors.ingredientes?.root && (
+          {errors.ingredientes?.root && (
                  <p className="text-sm font-medium text-destructive">{errors.ingredientes.root.message}</p>
             )}
         </div>

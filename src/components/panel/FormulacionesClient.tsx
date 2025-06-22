@@ -20,7 +20,6 @@ interface FormulacionesClientProps {
 }
 
 export function FormulacionesClient({ formulaciones }: FormulacionesClientProps) {
-    const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingFormulacion, setEditingFormulacion] = useState<Formulacion | null>(null);
 
@@ -34,14 +33,16 @@ export function FormulacionesClient({ formulaciones }: FormulacionesClientProps)
         setIsDialogOpen(true);
     };
 
-    const handleDialogClose = () => {
-        setIsDialogOpen(false);
-        setEditingFormulacion(null);
+    const handleDialogClose = (open: boolean) => {
+        if (!open) {
+            setEditingFormulacion(null);
+        }
+        setIsDialogOpen(open);
     };
 
     const onFormSubmit = () => {
-        handleDialogClose();
-        router.refresh();
+        setIsDialogOpen(false);
+        setEditingFormulacion(null);
     }
 
     return (
