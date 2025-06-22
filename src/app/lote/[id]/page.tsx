@@ -65,14 +65,12 @@ const getAgeInDays = (creationDate: string | Date): number => {
 };
 
 const getDynamicStatus = (lote: Lote): string => {
-    // Producer-set statuses that stop the automatic lifecycle
     if (['Vendido', 'Contaminado'].includes(lote.estado)) {
         return lote.estado;
     }
     
     const age = getAgeInDays(lote.created_at);
 
-    // The user's kit status is determined purely by its age.
     if (age <= 14) return 'En Incubación';
     if (age <= 25) return 'En Fructificación';
     return 'Listo para Cosecha';
@@ -166,6 +164,7 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: dynamicStatus,
+              incidents: undefined, // User-facing AI should not know about producer-side incidents
               latitude: coordinates?.latitude,
               longitude: coordinates?.longitude,
             }
@@ -303,15 +302,24 @@ export default function MycoSimbiontePage() {
 
   // Initial MycoMind call, fires after all data is ready
   useEffect(() => {
-    // Make the initial call only when both API data and localStorage are loaded,
-    // and only if there isn't a message already displayed from localStorage.
-    if (lote && !loading && localStorageLoaded && !initialCallMade.current && !displayedMessage) {
+    if (!lote || loading || !localStorageLoaded || initialCallMade.current) {
+        return;
+    }
+
+    // A call is needed if it's the very first time (no cached message)
+    const needsCallForInit = !displayedMessage;
+    
+    // Also call if we have coordinates but the cached response is stale (lacks weather data).
+    // This ensures that after a user sets their location and reloads, we fetch the weather.
+    const needsCallForStaleWeather = coordinates && !weather;
+
+    if (needsCallForInit || needsCallForStaleWeather) {
       initialCallMade.current = true;
       callMycoMind({ 
         interactionType: 'INITIALIZE', 
       });
     }
-  }, [lote, loading, localStorageLoaded, callMycoMind, displayedMessage]);
+  }, [lote, loading, localStorageLoaded, callMycoMind, displayedMessage, coordinates, weather]);
 
   // Handles scheduling and firing notifications
   useEffect(() => {
