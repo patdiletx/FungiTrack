@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Lote, Producto } from './types';
 
 // Specify the database schema for type safety
@@ -25,11 +25,31 @@ export type Database = {
   };
 };
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase URL and anon key are required in .env file.');
+let supabase: SupabaseClient<Database> | null = null;
+export let supabaseInitializationError: string | null = null;
+
+let isValidUrl = false;
+if (supabaseUrl) {
+    try {
+        new URL(supabaseUrl);
+        isValidUrl = true;
+    } catch(e) {
+        isValidUrl = false;
+    }
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+if (!isValidUrl || !supabaseAnonKey) {
+    supabaseInitializationError = 'Supabase URL is invalid or Supabase Key is missing. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.';
+} else {
+    try {
+        supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+    } catch (error: any) {
+        supabaseInitializationError = `Error initializing Supabase client: ${error.message}`;
+        supabase = null;
+    }
+}
+
+export { supabase };

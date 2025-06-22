@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient';
 // --- Supabase API ---
 
 export const getProductos = async (): Promise<Producto[]> => {
+  if (!supabase) return [];
   const { data, error } = await supabase.from('productos').select('*').order('nombre', { ascending: true });
   if (error) {
     console.error('Error fetching productos:', error.message);
@@ -15,6 +16,7 @@ export const getProductos = async (): Promise<Producto[]> => {
 };
 
 export const createProducto = async (data: Omit<Producto, 'id' | 'created_at'>): Promise<Producto> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
   const newProductData = {
     ...data,
     id: uuidv4(),
@@ -35,6 +37,7 @@ export const createProducto = async (data: Omit<Producto, 'id' | 'created_at'>):
 };
 
 export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'id' | 'created_at'>>): Promise<Producto | null> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
   const { data: updatedProduct, error } = await supabase
     .from('productos')
     .update(data)
@@ -52,6 +55,7 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 
 
 export const getLotes = async (): Promise<Lote[]> => {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('lotes')
     .select('*, productos(*)')
@@ -65,6 +69,7 @@ export const getLotes = async (): Promise<Lote[]> => {
 };
 
 export const getLoteById = async (id: string): Promise<Lote | null> => {
+   if (!supabase) return null;
    const { data, error } = await supabase
     .from('lotes')
     .select('*, productos(*)')
@@ -80,6 +85,7 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
 };
 
 export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos'>): Promise<Lote> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
   // The id_operador will be set by the database using the authenticated user's ID
   // thanks to `default auth.uid()` and our RLS policy.
   const newLoteData = {
@@ -104,6 +110,7 @@ export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado'
 };
 
 export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' | 'incidencias'>>): Promise<Lote | null> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
   const { data: updatedLote, error } = await supabase
     .from('lotes')
     .update(data)

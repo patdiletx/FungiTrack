@@ -17,6 +17,11 @@ export default function PanelLayout({
 
   useEffect(() => {
     const checkSession = async () => {
+      if (!supabase) {
+        console.error("Supabase client not initialized. Redirecting to login.");
+        router.replace('/');
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.replace('/');
@@ -27,17 +32,17 @@ export default function PanelLayout({
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase?.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         setIsAuth(false);
         router.replace('/');
       } else {
         setIsAuth(true)
       }
-    });
+    }) ?? { data: { subscription: null } };
 
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
 
   }, [router]);
