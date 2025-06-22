@@ -114,7 +114,7 @@ export function CareProgressPanel({
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[400px] sm:w-[540px] flex flex-col">
+            <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[90vw] sm:w-[540px] flex flex-col">
                 <SheetHeader className="text-left">
                     <SheetTitle className="font-headline text-3xl text-white">Cuidados y Progreso</SheetTitle>
                     <SheetDescription className="text-slate-400">
