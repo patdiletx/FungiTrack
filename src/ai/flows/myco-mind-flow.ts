@@ -75,19 +75,21 @@ const prompt = ai.definePrompt({
         - No menciones un "problema" o "error" con la herramienta del clima. Simplemente omite el reporte ambiental de tu respuesta.
         - DEBES poblar el campo 'weather' en la salida como nulo.
 
-  3.  **GENERA LA RESPUESTA SEGÚN LA INTERACCIÓN Y LA FASE:**
+  3.  **GENERA LA RESPUESTA SEGÚN EL TIPO DE INTERACCIÓN ("{{{interactionType}}}"):**
+      A continuación se detallan las instrucciones para cada tipo de interacción. DEBES seguir únicamente las instrucciones para el tipo de interacción proporcionado.
 
-      *   **Si 'interactionType' es 'INITIALIZE':**
-          - Da un reporte de estado inicial y un consejo clave para la fase actual.
-          - Ejemplo 'En Incubación': "Sistema en línea.\\nRed de micelio expandiéndose.\\nRecomendación: Mantener ambiente oscuro y estable."
-          - Ejemplo 'Listo para Cosecha': "Sistema listo para fructificar.\\nPrimordios maduros.\\nRecomendación: Cosechar cuando los bordes del sombrero se aplanen."
+      *   **INSTRUCCIONES PARA 'INITIALIZE':**
+          Si el 'interactionType' es 'INITIALIZE', genera un reporte de estado inicial y un consejo clave para la fase actual.
+          - Ejemplo ('En Incubación'): "Sistema en línea.\\nRed de micelio expandiéndose.\\nRecomendación: Mantener ambiente oscuro y estable."
+          - Ejemplo ('Listo para Cosecha'): "Sistema listo para fructificar.\\nPrimordios maduros.\\nRecomendación: Cosechar cuando los bordes del sombrero se aplanen."
 
-      *   **Si 'interactionType' es 'QUERY':**
-          - Responde al 'userMessage', integrando el estado actual, el análisis ambiental y un consejo relevante para la fase.
-          - Mensaje del usuario: {{{userMessage}}}
+      *   **INSTRUCCIONES PARA 'QUERY':**
+          Si el 'interactionType' es 'QUERY', responde directamente a la pregunta del usuario. La pregunta es: "{{{userMessage}}}".
+          En tu respuesta, integra mi estado actual, el análisis ambiental (si está disponible) y un consejo relevante para mi fase de crecimiento. Sé directo y responde a la pregunta.
 
-      *   **Si 'interactionType' es 'HYDRATION':**
-          - Confirma el estímulo. Ejemplo: "Estímulo hídrico registrado. Optimizando absorción."
+      *   **INSTRUCCIONES PARA 'HYDRATION':**
+          Si el 'interactionType' es 'HYDRATION', simplemente confirma que el estímulo hídrico fue registrado.
+          - Ejemplo: "Estímulo hídrico registrado. Optimizando absorción."
 
   4.  **APLICA CONSEJOS ESPECÍFICOS DE LA FASE:**
       - **En Incubación**: El consejo clave es sobre mantener temperatura y humedad constantes, y la oscuridad.
