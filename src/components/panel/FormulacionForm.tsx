@@ -1,17 +1,12 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useFieldArray, type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
-import { Formulacion } from '@/lib/types';
-import { createFormulacion, updateFormulacion } from '@/lib/mock-db';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { Save, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 
 const ingredienteSchema = z.object({
@@ -19,7 +14,7 @@ const ingredienteSchema = z.object({
   porcentaje: z.coerce.number().min(0, 'Debe ser >= 0').max(100, 'Debe ser <= 100'),
 });
 
-const formSchema = z.object({
+export const formulacionFormSchema = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   descripcion: z.string().optional(),
   puntuacion: z.coerce.number().int().min(0, 'Mínimo 0').max(10, 'Máximo 10'),
@@ -36,65 +31,21 @@ const formSchema = z.object({
 });
 
 interface FormulacionFormProps {
-  formulacion?: Formulacion | null;
-  onFinished: () => void;
+  form: UseFormReturn<z.infer<typeof formulacionFormSchema>>;
 }
 
-export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProps) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const isUpdateMode = !!formulacion;
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      nombre: formulacion?.nombre || '',
-      descripcion: formulacion?.descripcion || '',
-      puntuacion: formulacion?.puntuacion || 5,
-      ingredientes: formulacion?.ingredientes || [{ nombre: 'Viruta de madera', porcentaje: 80 }, { nombre: 'Salvado de trigo', porcentaje: 20 }],
-      humedad_objetivo_porcentaje: formulacion?.humedad_objetivo_porcentaje ?? 65,
-      notas: formulacion?.notas || '',
-    },
-  });
-
+export function FormulacionForm({ form }: FormulacionFormProps) {
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'ingredientes',
   });
 
-  const { formState: { isSubmitting, errors } } = form;
+  const { formState: { errors } } = form;
 
   const totalPercentage = form.watch('ingredientes').reduce((acc, ing) => acc + (Number(ing.porcentaje) || 0), 0);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      if (isUpdateMode && formulacion) {
-        await updateFormulacion(formulacion.id, values);
-        toast({
-          title: 'Formulación Actualizada',
-          description: `La formulación "${values.nombre}" ha sido actualizada.`,
-        });
-      } else {
-        await createFormulacion(values);
-        toast({
-          title: 'Formulación Creada',
-          description: `La formulación "${values.nombre}" ha sido creada exitosamente.`,
-        });
-      }
-      router.refresh();
-      onFinished();
-    } catch (error) {
-      toast({
-        title: 'Error al guardar la formulación',
-        description: 'Hubo un problema al guardar los datos. Inténtalo de nuevo.',
-        variant: 'destructive',
-      });
-    }
-  }
-
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
             control={form.control}
@@ -227,14 +178,6 @@ export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProp
                 </FormItem>
             )}
         />
-
-        <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                {isUpdateMode ? "Guardar Cambios" : "Crear Formulación"}
-            </Button>
-        </div>
-      </form>
-    </Form>
+    </>
   );
 }
