@@ -11,6 +11,7 @@ import { BatchForm } from "@/components/panel/BatchForm";
 import Link from 'next/link';
 import { BatchAssistant } from "@/components/panel/BatchAssistant";
 import { ContaminationChecker } from "@/components/panel/ContaminationChecker";
+import { DeleteBatchButton } from "@/components/panel/DeleteBatchButton";
 
 type Props = {
   params: { id: string };
@@ -123,6 +124,7 @@ export default async function LoteDetailPage({ params }: Props) {
           <BatchForm productos={productos} lote={lote} />
           <BatchAssistant lote={lote} />
           <ContaminationChecker />
+          <DeleteBatchButton loteId={lote.id} />
         </div>
       </div>
     </div>

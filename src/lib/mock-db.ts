@@ -125,3 +125,13 @@ export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' |
   
   return getLoteById(id); // Refetch to get the joined data
 };
+
+export const deleteLote = async (id: string): Promise<void> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
+  const { error } = await supabase.from('lotes').delete().eq('id', id);
+
+  if (error) {
+    console.error('Error deleting lote:', error.message);
+    throw new Error('Failed to delete lote.');
+  }
+};
