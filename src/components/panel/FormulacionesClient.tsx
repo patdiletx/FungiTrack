@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Formulacion } from "@/lib/types";
-import { createFormulacion, updateFormulacion } from '@/lib/mock-db';
+import { createFormulacion, updateFormulacion } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Save, Loader2 } from "lucide-react";
@@ -33,7 +33,7 @@ export function FormulacionesClient({ formulaciones }: FormulacionesClientProps)
     const isUpdateMode = !!editingFormulacion;
 
     useEffect(() => {
-        setAllFormulaciones(formulaciones);
+        setAllFormulaciones(sortFormulaciones(formulaciones));
     }, [formulaciones]);
 
     const form = useForm<z.infer<typeof formulacionFormSchema>>({

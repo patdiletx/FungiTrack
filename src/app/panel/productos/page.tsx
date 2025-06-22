@@ -1,4 +1,4 @@
-import { getProductos } from "@/lib/mock-db";
+import { getProductos } from "@/lib/data";
 import { ProductClient } from "@/components/panel/ProductClient";
 
 export default async function ProductosPage() {

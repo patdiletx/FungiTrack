@@ -1,4 +1,4 @@
-import { getLotes } from "@/lib/mock-db";
+import { getLotes } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";

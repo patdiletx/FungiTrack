@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Producto } from '@/lib/types';
-import { createProducto, updateProducto } from '@/lib/mock-db';
+import { createProducto, updateProducto } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -60,7 +60,7 @@ export function ProductForm({ producto, onFinished }: ProductFormProps) {
     } catch (error) {
       toast({
         title: "Error al guardar el producto",
-        description: "Hubo un problema al guardar los datos. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "Hubo un problema al guardar los datos. Inténtalo de nuevo.",
         variant: 'destructive',
       });
     }

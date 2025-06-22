@@ -1,4 +1,4 @@
-import { getLoteById } from '@/lib/mock-db';
+import { getLoteById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';

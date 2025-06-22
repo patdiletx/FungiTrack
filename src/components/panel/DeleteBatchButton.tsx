@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteLote } from '@/lib/mock-db';
+import { deleteLote } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,7 +37,6 @@ export function DeleteBatchButton({ loteId }: DeleteBatchButtonProps) {
         description: 'El lote ha sido eliminado permanentemente.',
       });
       router.push('/panel');
-      router.refresh();
     } catch (error) {
       toast({
         title: 'Error al eliminar',

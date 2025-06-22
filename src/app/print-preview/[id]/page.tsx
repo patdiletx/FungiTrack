@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getLoteById } from '@/lib/mock-db';
+import { getLoteByIdAction } from '@/lib/actions';
 import { Lote } from '@/lib/types';
 import { notFound, useParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,7 +19,7 @@ export default function PrintPreviewPage() {
 
   useEffect(() => {
     if (id) {
-      getLoteById(id)
+      getLoteByIdAction(id)
         .then(data => {
           if (data) {
             setLote(data);

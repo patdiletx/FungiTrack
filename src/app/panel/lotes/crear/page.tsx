@@ -1,4 +1,4 @@
-import { getFormulaciones, getProductos } from "@/lib/mock-db";
+import { getFormulaciones, getProductos } from "@/lib/data";
 import { BatchForm } from "@/components/panel/BatchForm";
 
 export default async function CreateBatchPage() {

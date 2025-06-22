@@ -1,4 +1,4 @@
-import { getFormulaciones } from "@/lib/mock-db";
+import { getFormulaciones } from "@/lib/data";
 import { FormulacionesClient } from "@/components/panel/FormulacionesClient";
 
 export default async function FormulacionesPage() {
