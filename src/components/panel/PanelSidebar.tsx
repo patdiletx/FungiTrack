@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';
 import { Button } from '@/components/ui/button';
-import { LogOut, LayoutDashboard, PlusCircle, Box } from 'lucide-react';
+import { LogOut, LayoutDashboard, PlusCircle, Box, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -49,6 +49,14 @@ export function PanelSidebar() {
                     <PlusCircle />
                     <span>Crear Lote</span>
                 </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/panel/scan')}>
+              <Link href="/panel/scan">
+                <QrCode />
+                <span>Escanear QR</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
