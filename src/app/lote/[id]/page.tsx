@@ -3,9 +3,8 @@
 import { getLoteByIdAction } from '@/lib/actions';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Send, Droplets, Loader2, Zap, Mic, MicOff } from 'lucide-react';
-import { useEffect, useState, useRef, FormEvent } from 'react';
+import { Mic, Loader2, Zap, MicOff } from 'lucide-react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Lote } from '@/lib/types';
 import { mycoMind, type MycoMindInput } from '@/ai/flows/myco-mind-flow';
 import { upsellStrategy, type UpsellStrategyOutput } from '@/ai/flows/upsell-strategy';
@@ -13,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductImage } from '@/components/ProductImage';
 import { MycoSoundWave } from '@/components/MycoSoundWave';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export type NetworkState = 'idle' | 'listening' | 'thinking' | 'hydrating' | 'error' | 'complex';
 type Message = {
@@ -36,16 +36,17 @@ export default function MycoMindPage() {
   const [loading, setLoading] = useState(true);
   const [networkState, setNetworkState] = useState<NetworkState>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [userInput, setUserInput] = useState('');
   const [isMycoTyping, setIsMycoTyping] = useState(false);
   const [upsell, setUpsell] = useState<UpsellStrategyOutput | null>(null);
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
   const [micPermission, setMicPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const [isListening, setIsListening] = useState(false);
   
+  const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const callMycoMind = async (input: MycoMindInput) => {
+  const callMycoMind = useCallback(async (input: MycoMindInput) => {
       setIsMycoTyping(true);
       setNetworkState('thinking');
       try {
@@ -71,7 +72,78 @@ export default function MycoMindPage() {
       } finally {
         setIsMycoTyping(false);
       }
-  };
+  }, [id, lote, toast]);
+
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast({
+        variant: 'destructive',
+        title: 'Navegador no compatible',
+        description: 'El reconocimiento de voz no es compatible con tu navegador.',
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setNetworkState('listening');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      const isContaminated = lote?.estado === 'Contaminado';
+      const age = lote ? getAgeInDays(lote.created_at) : 0;
+      let resetState: NetworkState = 'idle';
+      if (isContaminated) resetState = 'error';
+      else if (age >= 7) resetState = 'complex';
+      setNetworkState(resetState);
+    };
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript;
+      if (!transcript.trim() || !lote || isMycoTyping) return;
+
+      setMessages(prev => [...prev, { sender: 'user', text: transcript }]);
+
+      await callMycoMind({
+          interactionType: 'QUERY',
+          userMessage: transcript,
+          loteContext: {
+              productName: lote.productos!.nombre,
+              ageInDays: getAgeInDays(lote.created_at),
+              status: lote.estado,
+              incidents: lote.incidencias || undefined,
+          }
+      });
+    };
+    
+    recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        let errorDescription = 'Ocurrió un error al procesar tu voz.';
+        if (event.error === 'no-speech') {
+            errorDescription = 'No detecté ninguna voz. Por favor, intenta de nuevo.'
+        } else if (event.error === 'not-allowed') {
+            errorDescription = 'El acceso al micrófono fue bloqueado después de ser concedido.'
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Error de Reconocimiento',
+            description: errorDescription,
+        });
+    }
+
+    recognitionRef.current = recognition;
+  }, [lote, isMycoTyping, callMycoMind, toast]);
+
 
   useEffect(() => {
     const getMicPermission = async () => {
@@ -96,7 +168,7 @@ export default function MycoMindPage() {
             toast({
                 variant: 'destructive',
                 title: 'Acceso al Micrófono Denegado',
-                description: 'La visualización de sonido requiere acceso al micrófono. Por favor, habilita los permisos.',
+                description: 'La interacción por voz y la visualización de sonido requieren acceso al micrófono.',
             });
         }
     };
@@ -153,49 +225,14 @@ export default function MycoMindPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isMycoTyping]);
 
-  const handleSendMessage = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!userInput.trim() || !lote || isMycoTyping) return;
+  const handleToggleListening = () => {
+    if (isMycoTyping || micPermission !== 'granted' || !recognitionRef.current) return;
 
-    setMessages(prev => [...prev, { sender: 'user', text: userInput }]);
-    const textToSend = userInput;
-    setUserInput('');
-
-    await callMycoMind({
-        interactionType: 'QUERY',
-        userMessage: textToSend,
-        loteContext: {
-            productName: lote.productos!.nombre,
-            ageInDays: getAgeInDays(lote.created_at),
-            status: lote.estado,
-            incidents: lote.incidencias || undefined,
-        }
-    });
-  };
-  
-  const handleHydration = async () => {
-    if (!lote || isMycoTyping) return;
-    setNetworkState('hydrating');
-    setMessages(prev => [...prev, { sender: 'user', text: '[Enviaste un estímulo hídrico]' }]);
-    
-    await callMycoMind({
-        interactionType: 'HYDRATION',
-        loteContext: {
-            productName: lote.productos!.nombre,
-            ageInDays: getAgeInDays(lote.created_at),
-            status: lote.estado,
-            incidents: lote.incidencias || undefined,
-        }
-    });
-
-    setTimeout(() => {
-        const isContaminated = lote.estado === 'Contaminado';
-        const age = getAgeInDays(lote.created_at);
-        let resetState: NetworkState = 'idle';
-        if (isContaminated) resetState = 'error';
-        else if (age >= 7) resetState = 'complex';
-        setNetworkState(resetState);
-    }, 1500);
+    if (isListening) {
+        recognitionRef.current.stop();
+    } else {
+        recognitionRef.current.start();
+    }
   };
 
   if (loading) {
@@ -267,27 +304,31 @@ export default function MycoMindPage() {
             </Card>
         )}
 
-        <div className="mt-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="lg" onClick={handleHydration} disabled={isMycoTyping} className="bg-transparent text-white border-blue-400 hover:bg-blue-400/20 hover:text-white">
-              <Droplets className="mr-2 h-4 w-4 text-blue-400" /> Enviar Estímulo Hídrico
+        <div className="mt-auto flex flex-col items-center justify-center pt-4 flex-shrink-0">
+            <Button
+                size="icon"
+                onClick={handleToggleListening}
+                disabled={isMycoTyping || micPermission !== 'granted'}
+                className={cn(
+                    "rounded-full w-20 h-20 border-2 transition-all duration-300 relative",
+                    isListening ? "border-red-500 bg-red-500/20 text-red-500" : "border-primary bg-primary/10 text-primary",
+                    "disabled:border-muted disabled:bg-muted/10 disabled:text-muted-foreground"
+                )}
+                >
+                <Mic className="h-8 w-8" />
+                {isListening && (
+                    <span className="absolute h-full w-full rounded-full bg-red-500/50 animate-ping"></span>
+                )}
             </Button>
-            <form onSubmit={handleSendMessage} className="flex-1 flex gap-2">
-              <Input
-                type="text"
-                placeholder="Converse con Myco..."
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                onFocus={() => { if(networkState !== 'complex' && networkState !== 'error' && micPermission === 'granted') setNetworkState('listening')}}
-                onBlur={() => { if(networkState !== 'complex' && networkState !== 'error') setNetworkState('idle')}}
-                className="bg-card/10 border-primary/30 h-12 text-base text-white placeholder:text-gray-400"
-                disabled={isMycoTyping}
-              />
-              <Button type="submit" size="icon" className="h-12 w-12" disabled={isMycoTyping || !userInput.trim()}>
-                <Send />
-              </Button>
-            </form>
-          </div>
+            <p className="mt-2 h-4 text-xs text-muted-foreground">
+              {micPermission === 'denied'
+                ? 'Permiso de micrófono denegado'
+                : isMycoTyping
+                ? 'Myco está procesando...'
+                : isListening
+                ? 'Escuchando...'
+                : 'Presiona para hablar'}
+            </p>
         </div>
       </div>
     </main>
