@@ -33,10 +33,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // refreshing the session cookie
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser();
+  const { pathname } = request.nextUrl;
 
-  return response
+  // If trying to access a protected route without a session, redirect to login
+  if (!user && pathname.startsWith('/panel')) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  
+  // If user is logged in and tries to access the login page, redirect to panel
+  if (user && pathname === '/') {
+    return NextResponse.redirect(new URL('/panel', request.url));
+  }
+
+  // Refresh the session cookie
+  return response;
 }
 
 export const config = {

@@ -15,26 +15,27 @@ export default function PanelLayout({
 }) {
   const router = useRouter();
   const supabase = createClient();
-  const [isAuth, setIsAuth] = useState<boolean | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setIsAuth(true);
-      } else {
-        setIsAuth(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // The middleware handles unauthenticated users, so we primarily listen for SIGNED_OUT here
+      // to handle client-side logout properly.
+      if (event === 'SIGNED_OUT') {
         router.replace('/');
       }
     });
 
+    // Since the middleware has already validated the user, we can stop the loading state.
+    setIsLoading(false);
+
     return () => {
       subscription?.unsubscribe();
     };
-
   }, [router, supabase.auth]);
 
 
-  if (isAuth === undefined) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="w-full max-w-md p-4 space-y-4">
@@ -44,10 +45,6 @@ export default function PanelLayout({
         </div>
       </div>
     );
-  }
-
-  if (!isAuth) {
-    return null;
   }
 
   return (
