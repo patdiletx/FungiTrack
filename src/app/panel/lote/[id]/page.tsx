@@ -1,3 +1,5 @@
+'use client';
+
 import { getLoteById, getProductos } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +14,49 @@ import { ContaminationChecker } from "@/components/panel/ContaminationChecker";
 import { DeleteBatchButton } from "@/components/panel/DeleteBatchButton";
 import { ClientFormattedDate } from "@/components/ClientFormattedDate";
 import { UserActivityCard } from "@/components/panel/UserActivityCard";
+import { useEffect, useState } from "react";
+import type { Lote, Producto } from "@/lib/types";
 
 type Props = {
   params: { id: string };
 };
 
-export default async function LoteDetailPage({ params }: Props) {
-  const lote = await getLoteById(params.id);
-  const productos = await getProductos();
+// We need a client component to handle the async data fetching and state
+function LoteDetailView({ id }: { id: string }) {
+  const [lote, setLote] = useState<Lote | null>(null);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [loteData, productosData] = await Promise.all([
+          getLoteById(id),
+          getProductos()
+        ]);
+        
+        if (!loteData) {
+          notFound();
+          return;
+        }
+
+        setLote(loteData);
+        setProductos(productosData);
+      } catch (error) {
+        console.error("Failed to fetch lote details", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+     return <div className="space-y-6">...Cargando...</div>; // Replace with a proper skeleton loader
+  }
 
   if (!lote) {
-    notFound();
+    return notFound();
   }
 
   const getStatusVariant = (status: string) => {
@@ -121,7 +155,7 @@ export default async function LoteDetailPage({ params }: Props) {
             </Card>
           )}
 
-          {kitSettings && <UserActivityCard settings={kitSettings} />}
+          <UserActivityCard settings={kitSettings} />
         </div>
         
         <div className="md:col-span-1 space-y-6">
@@ -133,4 +167,9 @@ export default async function LoteDetailPage({ params }: Props) {
       </div>
     </div>
   );
+}
+
+
+export default function LoteDetailPage({ params }: Props) {
+  return <LoteDetailView id={params.id} />;
 }
