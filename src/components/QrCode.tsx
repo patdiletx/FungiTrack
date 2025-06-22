@@ -9,7 +9,7 @@ interface QrCodeProps {
 }
 
 export function QrCode({ value, size = 100, className }: QrCodeProps) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(value)}&size=${size}x${size}&bgcolor=F5F5DC`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(value)}&size=${size}x${size}`;
 
   return (
     <Image
