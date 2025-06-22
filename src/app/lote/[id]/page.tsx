@@ -39,13 +39,10 @@ const getAgeInDays = (creationDate: string | Date): number => {
 };
 
 const getDynamicStatus = (lote: Lote): string => {
-    // Producer-set states take precedence and stop the automatic cycle.
-    if (['Vendido', 'Contaminado'].includes(lote.estado)) {
-        return lote.estado;
-    }
-    
+    // Producer-set states do not affect the user's kit lifecycle
     const age = getAgeInDays(lote.created_at);
-
+    if (lote.estado === 'Contaminado') return 'Contaminado';
+    if (lote.estado === 'Vendido') return 'Vendido';
     if (age <= 14) return 'En Incubación';
     if (age <= 25) return 'En Fructificación';
     return 'Listo para Cosecha';
@@ -133,9 +130,10 @@ export default function MycoSimbiontePage() {
   };
   
   const onCoordinatesChange = async (coords: Coordinates) => {
-    setCoordinates(coords); // Update UI state immediately
+    // 1. Update the local React state immediately for a snappy UI response.
+    setCoordinates(coords);
     
-    // First, save the new coordinates to the database.
+    // 2. Asynchronously save the new coordinates to the database.
     try {
         await updateKitSettingsAction(id, { coordinates: coords });
         toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local para darte consejos.' });
@@ -145,7 +143,8 @@ export default function MycoSimbiontePage() {
         return; // Stop if saving failed
     }
 
-    // After saving, trigger a new AI interaction with the updated context
+    // 3. After saving, trigger a new AI interaction with the updated context.
+    //    Pass the new coordinates directly to the function to avoid stale state issues.
     if(lote){
          handleAiInteraction({
             interactionType: 'QUERY',
@@ -155,8 +154,8 @@ export default function MycoSimbiontePage() {
               ageInDays: getAgeInDays(lote.created_at),
               status: getDynamicStatus(lote),
               incidents: lote.incidencias,
-              latitude: coords.latitude,
-              longitude: coords.longitude,
+              latitude: coords.latitude, // Use the new coordinates directly
+              longitude: coords.longitude, // Use the new coordinates directly
             }
         });
     }
@@ -210,27 +209,29 @@ export default function MycoSimbiontePage() {
   // Single, robust initialization effect
   useEffect(() => {
     if (!id) return;
-    let isCancelled = false;
+    let isMounted = true;
 
     async function initializePage() {
         setLoading(true);
 
-        // 1. Fetch all data from the server
+        // 1. Fetch all data from the server in one go.
         const loteData = await getLoteByIdAction(id);
-        if (isCancelled || !loteData || !loteData.productos) {
-            if(!isCancelled) notFound();
+        if (!isMounted || !loteData || !loteData.productos) {
+            if(isMounted) notFound();
             return;
         }
-
-        // 2. Set all component state based on fetched data
-        setLote(loteData);
         
+        // 2. Set all local state based on the fetched data.
+        setLote(loteData);
         const settings = loteData.kit_settings?.[0];
-        const initialCoords = settings?.coordinates || null;
+        const coords = settings?.coordinates || null;
+        const lastResponse = settings?.last_ai_response || null;
+        
         setPhotoHistory(settings?.photo_history || []);
         setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
-        setCoordinates(initialCoords);
-
+        setCoordinates(coords);
+        
+        // Update the local list of user's kits.
         try {
             const storedKitsRaw = localStorage.getItem('fungi-my-kits');
             let kits: Kit[] = storedKitsRaw ? JSON.parse(storedKitsRaw) : [];
@@ -242,55 +243,46 @@ export default function MycoSimbiontePage() {
         } catch (e) {
             console.error("Failed to update kit list in localStorage", e);
         }
-        
-        // 3. Decide AI action: fresh call or restore from cache
-        const lastResponse = settings?.last_ai_response;
-        const needsFreshCall = !!initialCoords || !lastResponse;
 
+        // 3. Decide if we can use the cached AI response or need a fresh one.
+        // A fresh call is needed if:
+        // - We have coordinates, but the cached response doesn't include weather data.
+        // - OR there's no cached response at all (e.g., first visit).
+        const needsFreshCall = (!!coords && !lastResponse?.weather) || !lastResponse;
+        
         if (needsFreshCall) {
-            const currentDynamicStatus = getDynamicStatus(loteData);
+            // We must generate a new response from the AI.
             const mycoMindInput: MycoMindInput = {
                 interactionType: 'INITIALIZE',
                 loteContext: {
                     productName: loteData.productos!.nombre,
                     ageInDays: getAgeInDays(loteData.created_at),
-                    status: currentDynamicStatus,
+                    status: getDynamicStatus(loteData),
                     incidents: loteData.incidencias,
-                    latitude: initialCoords?.latitude,
-                    longitude: initialCoords?.longitude,
+                    latitude: coords?.latitude,
+                    longitude: coords?.longitude,
                 }
             };
-            // This is a special case of handleAiInteraction, done manually to avoid stale state
-            setMycoState('thinking');
-            try {
-                const aiResponse = await mycoMind(mycoMindInput);
-                if (!aiResponse) throw new Error("AI returned null");
-                await updateKitSettingsAction(loteData.id, { last_ai_response: aiResponse });
-                setMycoMood(aiResponse.mood);
-                setWeather(aiResponse.weather ?? null);
-                setDisplayedMessage({ id: Date.now(), text: aiResponse.response });
-            } catch (e) {
-                console.error("Error during initial AI call:", e);
-                setDisplayedMessage({ id: Date.now(), text: "Error de conexión con la red neuronal..." });
-                setMycoMood('Estrés');
-            } finally {
-                setMycoState('idle');
-            }
+            // Use the main AI interaction handler to ensure consistency in logic.
+            await handleAiInteraction(mycoMindInput);
         } else if (lastResponse) {
-            // Restore directly from cache
+            // We can safely restore from the cache.
             setMycoMood(lastResponse.mood);
             setWeather(lastResponse.weather ?? null);
             setDisplayedMessage({ id: Date.now(), text: lastResponse.response });
         }
         
-        setLoading(false);
+        if(isMounted) {
+            setLoading(false);
+        }
     }
 
     initializePage();
 
     return () => {
-        isCancelled = true;
+        isMounted = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
 
