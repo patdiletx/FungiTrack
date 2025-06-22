@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Bell, Camera, Image as ImageIcon, Plus, Trash2, Network } from "lucide-react";
-import { type PhotoEntry, type NotificationSettings, type Kit } from "@/app/lote/[id]/page";
+import { Bell, Camera, Image as ImageIcon, Plus, Trash2, Network, Globe, Save } from "lucide-react";
+import { type PhotoEntry, type NotificationSettings, type Kit, type Coordinates } from "@/app/lote/[id]/page";
 import { ScrollArea } from "../ui/scroll-area";
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,8 @@ interface CareProgressPanelProps {
     onSettingsChange: (settings: NotificationSettings) => void;
     myKits: Kit[];
     currentKitId: string;
+    coordinates: Coordinates | null;
+    onCoordinatesChange: (coords: Coordinates) => void;
 }
 
 export function CareProgressPanel({
@@ -35,10 +37,21 @@ export function CareProgressPanel({
     onPhotoUpload,
     onSettingsChange,
     myKits,
-    currentKitId
+    currentKitId,
+    coordinates,
+    onCoordinatesChange
 }: CareProgressPanelProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [lat, setLat] = useState('');
+    const [lon, setLon] = useState('');
+
+     useEffect(() => {
+        if (isOpen) {
+            setLat(coordinates?.latitude?.toString() || '');
+            setLon(coordinates?.longitude?.toString() || '');
+        }
+    }, [isOpen, coordinates]);
 
     const handleMasterToggle = async (enabled: boolean) => {
         if (enabled && typeof window !== 'undefined' && "Notification" in window) {
@@ -57,7 +70,7 @@ export function CareProgressPanel({
         }
         onSettingsChange({ ...notificationSettings, enabled });
         if (enabled) {
-            new Notification('Simbiosis Conectada', {
+            new Notification('FungiGrow AI Conectado', {
                 body: 'Las alertas de cuidado están ahora activas.',
                 icon: '/logo.png' 
             });
@@ -117,9 +130,24 @@ export function CareProgressPanel({
         }
     };
 
+    const handleSaveLocation = () => {
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+
+        if (isNaN(latitude) || isNaN(longitude)) {
+            toast({
+                variant: 'destructive',
+                title: 'Ubicación Inválida',
+                description: 'Por favor, introduce una latitud y longitud válidas.'
+            });
+            return;
+        }
+        onCoordinatesChange({ latitude, longitude });
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[90vw] sm:w-[540px] flex flex-col">
+            <SheetContent className="bg-[#201A30]/80 text-white border-[#A080E0]/30 backdrop-blur-lg w-[90vw] sm:max-w-[400px] flex flex-col">
                 <SheetHeader className="text-left">
                     <SheetTitle className="font-headline text-3xl text-white">Cuidados y Progreso</SheetTitle>
                     <SheetDescription className="text-slate-400">
@@ -129,19 +157,14 @@ export function CareProgressPanel({
 
                 <ScrollArea className="flex-grow pr-4 -mr-6 mt-4">
                     <div className="space-y-6">
-                        {/* --- Kit Switcher --- */}
+                         {/* --- Kit Switcher --- */}
                         <div className="p-4 rounded-lg bg-black/20 border border-white/10">
                             <h3 className="text-lg font-bold flex items-center gap-3 mb-4">
                                 <Network className="h-6 w-6 text-[#70B0F0]" />
-                                Mis Kits de Cultivo
+                                Mi Red de Cultivos
                             </h3>
                             <div className="space-y-2">
-                                {myKits.length <= 1 && (
-                                    <p className="text-slate-400 text-sm text-center py-2">
-                                        Escanea otro kit para añadirlo a tu red.
-                                    </p>
-                                )}
-                                {myKits.map(kit => (
+                                {myKits.length > 0 && myKits.map(kit => (
                                     <Link key={kit.id} href={`/lote/${kit.id}`} passHref>
                                         <Button
                                             variant={kit.id === currentKitId ? "secondary" : "ghost"}
@@ -154,11 +177,34 @@ export function CareProgressPanel({
                                 ))}
                                 <Link href="/scan" passHref>
                                      <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent hover:bg-white/10">
-                                        <Plus className="mr-2 h-4 w-4" /> Añadir otro Kit
+                                        <Plus className="mr-2 h-4 w-4" /> Añadir otro Cultivo
                                     </Button>
                                 </Link>
                             </div>
                         </div>
+
+                        {/* --- Location Settings --- */}
+                        <div className="p-4 rounded-lg bg-black/20 border border-white/10 space-y-4">
+                            <h3 className="text-lg font-bold flex items-center gap-3">
+                                <Globe className="h-6 w-6 text-[#70B0F0]" />
+                                Ubicación del Cultivo
+                            </h3>
+                            <p className='text-xs text-slate-400 -mt-2'>Proporciona la ubicación para obtener datos climáticos y consejos precisos.</p>
+                             <div className="space-y-2">
+                                <div>
+                                    <Label htmlFor="latitude" className="text-sm">Latitud</Label>
+                                    <Input id="latitude" type="number" placeholder="Ej: -33.4489" value={lat} onChange={(e) => setLat(e.target.value)} className="bg-slate-800/50 border-slate-700"/>
+                                </div>
+                                <div>
+                                    <Label htmlFor="longitude" className="text-sm">Longitud</Label>
+                                    <Input id="longitude" type="number" placeholder="Ej: -70.6693" value={lon} onChange={(e) => setLon(e.target.value)} className="bg-slate-800/50 border-slate-700"/>
+                                </div>
+                             </div>
+                             <Button onClick={handleSaveLocation} className="w-full bg-slate-600 hover:bg-slate-500">
+                                <Save className="mr-2 h-4 w-4" /> Guardar Ubicación
+                             </Button>
+                        </div>
+
 
                         {/* --- Notification Settings --- */}
                         <div className="p-4 rounded-lg bg-black/20 border border-white/10 space-y-4">
@@ -244,7 +290,7 @@ export function CareProgressPanel({
                                         <Image
                                             src={photo.url}
                                             alt="Progreso del cultivo"
-                                            layout="fill"
+                                            fill
                                             className="rounded-md object-cover"
                                         />
                                         <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white text-xs text-center p-1 rounded-b-md opacity-0 group-hover:opacity-100 transition-opacity">

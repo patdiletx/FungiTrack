@@ -35,14 +35,15 @@ export type NotificationSettings = {
     };
 }
 
+export type Coordinates = {
+    latitude: number;
+    longitude: number;
+};
+
 type MycoState = 'idle' | 'listening' | 'thinking';
 type DisplayMessage = {
     id: number;
     text: string;
-};
-type Coordinates = {
-    latitude: number;
-    longitude: number;
 };
 type WeatherData = {
     temperature: number;
@@ -84,29 +85,6 @@ export default function MycoSimbiontePage() {
 
   const recognitionRef = useRef<any>(null);
 
-  // Request Geolocation
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setCoordinates({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
-            },
-            (error) => {
-                // Don't bother the user if they deny, just proceed without weather data.
-                console.warn(`Geolocation error: ${error.message}`);
-                toast({
-                    title: 'Ubicación no disponible',
-                    description: 'No se pudo obtener el clima local. La IA funcionará sin datos ambientales.',
-                    variant: 'destructive',
-                    duration: 5000,
-                });
-            }
-        );
-    }
-  }, [toast]);
 
   // Load data from localStorage
   useEffect(() => {
@@ -132,6 +110,10 @@ export default function MycoSimbiontePage() {
             },
         };
         setNotificationSettings(mergedSettings);
+      }
+      const storedLocation = localStorage.getItem(`fungi-location-${id}`);
+      if (storedLocation) {
+        setCoordinates(JSON.parse(storedLocation));
       }
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
@@ -161,15 +143,42 @@ export default function MycoSimbiontePage() {
         console.error("Failed to save notification settings", e);
       }
   }, [id, toast]);
+  
+  const saveCoordinates = useCallback((coords: Coordinates) => {
+      if (!id) return;
+      try {
+          localStorage.setItem(`fungi-location-${id}`, JSON.stringify(coords));
+          setCoordinates(coords);
+          toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima de esta ubicación.' });
+          // Optional: Re-call Myco Mind to update weather immediately
+          // callMycoMind({ interactionType: 'QUERY', userMessage: 'Actualiza el reporte ambiental.' ... });
+      } catch (e) {
+          console.error("Failed to save coordinates to localStorage", e);
+          toast({ variant: 'destructive', title: 'Error al guardar ubicación'});
+      }
+  }, [id, toast]);
 
 
   const callMycoMind = useCallback(async (input: any) => {
+      if (!lote) return;
       setMycoState('thinking');
       try {
-        const { response, mood, weather: weatherData } = await mycoMind(input);
+        const { response, mood, weather: weatherData } = await mycoMind({
+            ...input,
+            loteContext: {
+              productName: lote.productos!.nombre,
+              ageInDays: getAgeInDays(lote.created_at),
+              status: lote.estado,
+              incidents: lote.incidencias || undefined,
+              latitude: coordinates?.latitude,
+              longitude: coordinates?.longitude,
+            }
+        });
         setMycoMood(mood);
         if (weatherData) {
             setWeather(weatherData);
+        } else {
+            setWeather(null); // Clear weather data if not available
         }
         setDisplayedMessage({ id: Date.now(), text: response });
       } catch (e) {
@@ -179,7 +188,7 @@ export default function MycoSimbiontePage() {
       } finally {
         setMycoState('idle');
       }
-  }, []);
+  }, [lote, coordinates]);
 
   // Speech Recognition Setup
   useEffect(() => {
@@ -204,19 +213,11 @@ export default function MycoSimbiontePage() {
 
     recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
-      if (!transcript.trim() || !lote) return;
+      if (!transcript.trim()) return;
       
       await callMycoMind({
           interactionType: 'QUERY',
           userMessage: transcript,
-          loteContext: {
-              productName: lote.productos!.nombre,
-              ageInDays: getAgeInDays(lote.created_at),
-              status: lote.estado,
-              incidents: lote.incidencias || undefined,
-              latitude: coordinates?.latitude,
-              longitude: coordinates?.longitude,
-          }
       });
     };
     recognition.onerror = (event: any) => {
@@ -224,7 +225,7 @@ export default function MycoSimbiontePage() {
         toast({ variant: "destructive", title: "Error de voz", description: event.error });
     }
     recognitionRef.current = recognition;
-  }, [lote, callMycoMind, toast, coordinates]);
+  }, [callMycoMind, toast]);
 
   // Initial Data Fetch
   useEffect(() => {
@@ -249,26 +250,20 @@ export default function MycoSimbiontePage() {
           console.error("Failed to update kit list in localStorage", e);
       }
 
-      const { mood, response, weather: weatherData } = await mycoMind({ 
-        interactionType: 'INITIALIZE', 
-        loteContext: {
-            productName: loteData.productos.nombre,
-            ageInDays: getAgeInDays(loteData.created_at),
-            status: loteData.estado,
-            incidents: loteData.incidencias || undefined,
-            latitude: coordinates?.latitude,
-            longitude: coordinates?.longitude,
-      }});
-      setMycoMood(mood);
-      if (weatherData) {
-          setWeather(weatherData);
-      }
-      setDisplayedMessage({ id: Date.now(), text: response });
-
       setLoading(false);
     }
     fetchData();
-  }, [id, callMycoMind, coordinates]);
+  }, [id]);
+
+  // Initial MycoMind call, fires after lote and coordinates are established
+  useEffect(() => {
+    if (lote && !loading) {
+      callMycoMind({ 
+        interactionType: 'INITIALIZE', 
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lote, loading, callMycoMind]);
 
   const handleToggleListening = () => {
     if (mycoState === 'thinking' || !recognitionRef.current) return;
@@ -345,6 +340,8 @@ export default function MycoSimbiontePage() {
                 savePhotoHistory(newHistory);
             }}
             onSettingsChange={saveNotificationSettings}
+            coordinates={coordinates}
+            onCoordinatesChange={saveCoordinates}
        />
     </main>
   );
