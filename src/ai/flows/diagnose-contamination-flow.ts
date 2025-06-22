@@ -34,15 +34,15 @@ const prompt = ai.definePrompt({
   name: 'diagnoseContaminationPrompt',
   input: {schema: DiagnoseContaminationInputSchema},
   output: {schema: DiagnoseContaminationOutputSchema},
-  prompt: `You are an expert mycologist specializing in identifying mushroom cultivation contaminants.
-Your task is to analyze the provided image of a mushroom substrate or batch and determine if it is contaminated.
+  prompt: `Eres un micólogo experto especializado en identificar contaminantes en cultivos de hongos.
+Tu tarea es analizar la imagen proporcionada de un sustrato o lote de hongos y determinar si está contaminado. Tu respuesta debe estar completamente en español.
 
-Analyze the image: {{media url=photoDataUri}}
+Analiza la imagen: {{media url=photoDataUri}}
 
-- Look for common contaminants like Trichoderma (green mold), Penicillium (blue-green mold), Cobweb mold (gray, fuzzy growth), or bacterial blotch (slimy, yellow/brown spots).
-- If contamination is detected, set 'isContaminated' to true, identify the likely contaminant in the 'diagnosis', and explain why you think it's that contaminant. Also, provide a confidence score.
-- If the batch appears healthy, set 'isContaminated' to false and state in the 'diagnosis' that it looks healthy and ready for the next stage. Provide a high confidence score.
-- Your diagnosis should be clear and provide actionable advice if a problem is found (e.g., "Isolate the bag immediately and dispose of it safely.").
+- Busca contaminantes comunes como Trichoderma (moho verde), Penicillium (moho azul-verdoso), moho Telaraña (crecimiento gris y algodonoso) o mancha bacteriana (manchas viscosas, amarillas/marrones).
+- Si se detecta contaminación, establece 'isContaminated' en true, identifica el contaminante probable en el 'diagnosis', y explica por qué crees que es ese contaminante. Además, proporciona una puntuación de confianza.
+- Si el lote parece saludable, establece 'isContaminated' en false e indica en el 'diagnosis' que se ve saludable y listo para la siguiente etapa. Proporciona una puntuación de confianza alta.
+- Tu diagnóstico debe ser claro y proporcionar consejos prácticos si se encuentra un problema (ej., "Aísla la bolsa inmediatamente y deséchala de forma segura.").
 `,
 });
 

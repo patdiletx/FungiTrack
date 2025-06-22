@@ -47,18 +47,18 @@ const upsellPrompt = ai.definePrompt({
   output: {
     schema: UpsellStrategyOutputSchema,
   },
-  prompt: `You are an expert marketing advisor for a mushroom growing company.
+  prompt: `Eres un asesor de marketing experto para una empresa de cultivo de hongos. Tu respuesta debe estar completamente en español.
 
-  Based on the product ID scanned, and the customer's purchase history, determine whether to offer an upsell promotion for the 'Bloque Productor XL'.
+  Basado en el ID del producto escaneado y el historial de compras del cliente, determina si se debe ofrecer una promoción de venta adicional para el 'Bloque Productor XL'.
 
-  If the product scanned is the 'Kit de Inicio', consider the customer's history to determine if they would be interested in a larger product like the 'Bloque Productor XL'.
+  Si el producto escaneado es el 'Kit de Inicio', considera el historial del cliente para determinar si estaría interesado en un producto más grande como el 'Bloque Productor XL'.
 
-  If the customer has a history of purchasing multiple kits, or has shown interest in larger quantities of mushrooms, then offer the upsell.
+  Si el cliente tiene un historial de comprar múltiples kits o ha mostrado interés en mayores cantidades de hongos, entonces ofrece la venta adicional.
 
-  Customer History: {{{customerHistory}}}
-  Product ID: {{{productId}}}
+  Historial del Cliente: {{{customerHistory}}}
+  ID del Producto: {{{productId}}}
 
-  Return a JSON object with 'shouldUpsell' set to true or false, and if true, a personalized 'upsellMessage' encouraging them to buy the 'Bloque Productor XL'.`,
+  Devuelve un objeto JSON con 'shouldUpsell' establecido en true o false, y si es true, un 'upsellMessage' personalizado en español que anime al usuario a comprar el 'Bloque Productor XL'.`,
 });
 
 const upsellStrategyFlow = ai.defineFlow(
