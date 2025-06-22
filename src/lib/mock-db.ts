@@ -1,15 +1,14 @@
-import type { Lote, Producto } from './types';
+import type { Lote, Producto, Formulacion } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
 
-// --- Supabase API ---
+// --- PRODUCTOS ---
 
 export const getProductos = async (): Promise<Producto[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase.from('productos').select('*').order('nombre', { ascending: true });
   if (error) {
     console.error('Error fetching productos:', error.message);
-    // In a real app, you might want to show a user-friendly error
     return []; 
   }
   return data || [];
@@ -54,6 +53,8 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 };
 
 
+// --- LOTES ---
+
 export const getLotes = async (): Promise<Lote[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -86,8 +87,6 @@ export const getLoteById = async (id: string): Promise<Lote | null> => {
 
 export const createLote = async (data: Omit<Lote, 'id' | 'estado' | 'id_operador' | 'productos'>): Promise<Lote> => {
   if (!supabase) throw new Error('Supabase client is not initialized.');
-  // The id_operador will be set by the database using the authenticated user's ID
-  // thanks to `default auth.uid()` and our RLS policy.
   const newLoteData = {
     ...data,
     id: uuidv4(),
@@ -133,4 +132,55 @@ export const deleteLote = async (id: string): Promise<void> => {
     console.error('Error deleting lote:', error.message);
     throw new Error('Failed to delete lote.');
   }
+};
+
+
+// --- FORMULACIONES ---
+
+export const getFormulaciones = async (): Promise<Formulacion[]> => {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from('formulaciones').select('*').order('puntuacion', { ascending: false });
+  if (error) {
+    console.error('Error fetching formulaciones:', error.message);
+    return [];
+  }
+  return data || [];
+};
+
+export const createFormulacion = async (data: Omit<Formulacion, 'id' | 'created_at' | 'id_operador'>): Promise<Formulacion> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
+  const newFormulacionData = {
+    ...data,
+    id: uuidv4(),
+  };
+
+  const { data: newFormulacion, error } = await supabase
+    .from('formulaciones')
+    .insert(newFormulacionData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating formulacion:', error.message);
+    throw new Error('Failed to create formulacion.');
+  }
+
+  return newFormulacion;
+};
+
+export const updateFormulacion = async (id: string, data: Partial<Omit<Formulacion, 'id' | 'created_at' | 'id_operador'>>): Promise<Formulacion | null> => {
+  if (!supabase) throw new Error('Supabase client is not initialized.');
+  const { data: updatedFormulacion, error } = await supabase
+    .from('formulaciones')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating formulacion:', error.message);
+    throw new Error('Failed to update formulacion.');
+  }
+
+  return updatedFormulacion;
 };

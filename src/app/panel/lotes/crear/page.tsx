@@ -1,8 +1,9 @@
-import { getProductos } from "@/lib/mock-db";
+import { getFormulaciones, getProductos } from "@/lib/mock-db";
 import { BatchForm } from "@/components/panel/BatchForm";
 
 export default async function CreateBatchPage() {
   const productos = await getProductos();
+  const formulaciones = await getFormulaciones();
 
   return (
     <div className="space-y-6">
@@ -15,7 +16,7 @@ export default async function CreateBatchPage() {
         </p>
       </div>
       <div className="max-w-2xl">
-        <BatchForm productos={productos} />
+        <BatchForm productos={productos} formulaciones={formulaciones} />
       </div>
     </div>
   );

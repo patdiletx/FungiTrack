@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { FungiTrackLogo } from '@/components/FungiTrackLogo';
 import { Button } from '@/components/ui/button';
-import { LogOut, LayoutDashboard, PlusCircle, Box, QrCode } from 'lucide-react';
+import { LogOut, LayoutDashboard, PlusCircle, Box, QrCode, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -64,6 +64,14 @@ export function PanelSidebar() {
               <Link href="/panel/productos">
                 <Box />
                 <span>Productos</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/panel/formulaciones')}>
+              <Link href="/panel/formulaciones">
+                <FlaskConical />
+                <span>Formulaciones</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

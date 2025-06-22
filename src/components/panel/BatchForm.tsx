@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { Lote, Producto } from '@/lib/types';
+import { Lote, Producto, Formulacion } from '@/lib/types';
 import { createLote, updateLote } from '@/lib/mock-db';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -13,12 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Loader2 } from 'lucide-react';
-import { SubstrateCalculator } from './SubstrateCalculator';
+import { Save, Loader2, FlaskConical } from 'lucide-react';
 import { Separator } from '../ui/separator';
 
 const formSchema = z.object({
   id_producto: z.string().uuid('Por favor, selecciona un producto.'),
+  id_formulacion: z.string().uuid('Por favor, selecciona una formulación.'),
   unidades_producidas: z.coerce.number().int().positive('La cantidad debe ser un número positivo.'),
   notas_sustrato: z.string().optional(),
 });
@@ -31,18 +32,21 @@ const updateFormSchema = z.object({
 
 interface BatchFormProps {
   productos: Producto[];
+  formulaciones?: Formulacion[];
   lote?: Lote | null;
 }
 
-export function BatchForm({ productos, lote }: BatchFormProps) {
+export function BatchForm({ productos, formulaciones, lote }: BatchFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isUpdateMode = !!lote;
+  const isCreateMode = !lote;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       id_producto: '',
+      id_formulacion: '',
       unidades_producidas: 1,
       notas_sustrato: '',
     },
@@ -55,14 +59,43 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
       incidencias: lote?.incidencias || '',
     },
   });
-
-  const watchedProductId = useWatch({
-    control: form.control,
-    name: 'id_producto',
-  });
-
+  
   const {formState: { isSubmitting }} = form;
   const {formState: { isSubmitting: isUpdating }} = updateForm;
+  
+  // --- Automatic Substrate Calculation ---
+  const watchedProductId = useWatch({ control: form.control, name: 'id_producto' });
+  const watchedFormulationId = useWatch({ control: form.control, name: 'id_formulacion' });
+  const watchedUnidades = useWatch({ control: form.control, name: 'unidades_producidas' });
+
+  useEffect(() => {
+    if (!isCreateMode || !formulaciones || !productos) return;
+
+    const producto = productos.find(p => p.id === watchedProductId);
+    const formulacion = formulaciones.find(f => f.id === watchedFormulationId);
+
+    if (producto && formulacion && watchedUnidades > 0) {
+      const totalBatchWeightGr = producto.peso_gr * watchedUnidades;
+      
+      let formulaString = `Fórmula: ${formulacion.nombre} (Puntuación: ${formulacion.puntuacion}/10)\n`;
+      formulaString += `Basado en ${watchedUnidades} unidades de ${producto.nombre} (${producto.peso_gr}gr c/u).\n`;
+      formulaString += `Peso seco total del lote: ${(totalBatchWeightGr / 1000).toFixed(2)} kg.\n\n`;
+      formulaString += '--- Ingredientes Secos ---\n';
+
+      formulacion.ingredientes.forEach(ing => {
+        const ingredientWeightKg = (totalBatchWeightGr * (ing.porcentaje / 100)) / 1000;
+        formulaString += `- ${ing.nombre} (${ing.porcentaje}%): ${ingredientWeightKg.toFixed(2)} kg\n`;
+      });
+
+      if (formulacion.notas) {
+        formulaString += `\n--- Notas de la Formulación ---\n${formulacion.notas}`;
+      }
+
+      form.setValue('notas_sustrato', formulaString);
+    }
+
+  }, [watchedProductId, watchedFormulationId, watchedUnidades, productos, formulaciones, form, isCreateMode]);
+  // --- End of Calculation ---
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -102,10 +135,6 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
       });
     }
   }
-
-  const handleFormulaCalculated = (formulaString: string) => {
-    form.setValue('notas_sustrato', formulaString, { shouldValidate: true });
-  };
 
   if (isUpdateMode) {
     return (
@@ -166,63 +195,84 @@ export function BatchForm({ productos, lote }: BatchFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="id_producto"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Producto</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Selecciona un producto a fabricar" /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {productos.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombre} ({p.peso_gr}gr)</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="unidades_producidas"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Unidades Producidas</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="Ej: 50" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className='space-y-6'>
-            <Separator />
-            <SubstrateCalculator
-                productos={productos}
-                id_producto={watchedProductId}
-                onFormulaCalculated={handleFormulaCalculated}
+        <div className="space-y-4">
+            <FormField
+            control={form.control}
+            name="id_producto"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>1. Selecciona el Producto</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger><SelectValue placeholder="Selecciona un producto a fabricar" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    {productos.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.nombre} ({p.peso_gr}gr)</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
             />
-            <Separator />
+            <FormField
+            control={form.control}
+            name="unidades_producidas"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>2. Ingresa la Cantidad de Unidades</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="Ej: 50" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
         </div>
 
-        <FormField
-          control={form.control}
-          name="notas_sustrato"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas sobre el Sustrato</FormLabel>
-              <FormControl>
-                <Textarea rows={8} placeholder="Describe la composición o cualquier detalle relevante... O usa el asistente de arriba para generar una fórmula." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <Separator />
+
+        <div className='space-y-4'>
+            <div className='flex items-center gap-2'>
+                <FlaskConical className='h-5 w-5 text-primary' />
+                <h3 className='text-lg font-semibold'>Formulación del Sustrato</h3>
+            </div>
+            <FormField
+                control={form.control}
+                name="id_formulacion"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>3. Selecciona una Formulación Base</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Elige la receta para el sustrato" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {formulaciones?.map(f => (
+                            <SelectItem key={f.id} value={f.id}>{f.nombre} (P: {f.puntuacion}/10)</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+            control={form.control}
+            name="notas_sustrato"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>4. Revisa las Notas (autogeneradas)</FormLabel>
+                <FormControl>
+                    <Textarea rows={10} placeholder="Los cálculos de la receta aparecerán aquí automáticamente después de seleccionar producto, unidades y formulación..." {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+
         <Button type="submit" size="lg" disabled={isSubmitting}>
            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Registrar Lote
