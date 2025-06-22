@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,11 +26,15 @@ interface FormulacionesClientProps {
 }
 
 export function FormulacionesClient({ formulaciones }: FormulacionesClientProps) {
+    const [allFormulaciones, setAllFormulaciones] = useState<Formulacion[]>(formulaciones);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingFormulacion, setEditingFormulacion] = useState<Formulacion | null>(null);
-    const router = useRouter();
     const { toast } = useToast();
     const isUpdateMode = !!editingFormulacion;
+
+    useEffect(() => {
+        setAllFormulaciones(formulaciones);
+    }, [formulaciones]);
 
     const form = useForm<z.infer<typeof formulacionFormSchema>>({
         resolver: zodResolver(formulacionFormSchema),
@@ -88,27 +91,34 @@ export function FormulacionesClient({ formulaciones }: FormulacionesClientProps)
         setIsDialogOpen(open);
     };
 
+    const sortFormulaciones = (formulacionesList: Formulacion[]) => {
+        return [...formulacionesList].sort((a, b) => b.puntuacion - a.puntuacion);
+    }
+
     async function onSubmit(values: z.infer<typeof formulacionFormSchema>) {
         try {
           if (isUpdateMode && editingFormulacion) {
-            await updateFormulacion(editingFormulacion.id, values);
+            const updated = await updateFormulacion(editingFormulacion.id, values);
+            if(updated) {
+                 setAllFormulaciones(prev => sortFormulaciones(prev.map(f => f.id === updated.id ? updated : f)));
+            }
             toast({
               title: 'Formulación Actualizada',
               description: `La formulación "${values.nombre}" ha sido actualizada.`,
             });
           } else {
-            await createFormulacion(values);
+            const created = await createFormulacion(values);
+            setAllFormulaciones(prev => sortFormulaciones([created, ...prev]));
             toast({
               title: 'Formulación Creada',
               description: `La formulación "${values.nombre}" ha sido creada exitosamente.`,
             });
           }
-          router.refresh();
           handleDialogClose(false);
         } catch (error) {
           toast({
             title: 'Error al guardar la formulación',
-            description: 'Hubo un problema al guardar los datos. Inténtalo de nuevo.',
+            description: error instanceof Error ? error.message : 'Hubo un problema al guardar los datos.',
             variant: 'destructive',
           });
         }
@@ -123,7 +133,7 @@ export function FormulacionesClient({ formulaciones }: FormulacionesClientProps)
                 </Button>
             </div>
             
-            <FormulacionesTable formulaciones={formulaciones} onEdit={handleEdit} />
+            <FormulacionesTable formulaciones={allFormulaciones} onEdit={handleEdit} />
 
             <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
                 <DialogContent className="sm:max-w-[625px] flex flex-col max-h-[90vh]">
