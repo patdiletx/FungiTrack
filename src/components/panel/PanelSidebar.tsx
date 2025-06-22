@@ -37,20 +37,20 @@ export function PanelSidebar() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="/panel" passHref>
-              <SidebarMenuButton asChild isActive={pathname === '/panel'}>
+            <SidebarMenuButton asChild isActive={pathname === '/panel'}>
+              <Link href="/panel">
                 <LayoutDashboard />
                 <span>Panel de Lotes</span>
-              </SidebarMenuButton>
-            </Link>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/panel/lotes/crear" passHref>
-              <SidebarMenuButton asChild isActive={pathname === '/panel/lotes/crear'}>
+            <SidebarMenuButton asChild isActive={pathname === '/panel/lotes/crear'}>
+              <Link href="/panel/lotes/crear">
                 <PlusCircle />
                 <span>Crear Lote</span>
-              </SidebarMenuButton>
-            </Link>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
