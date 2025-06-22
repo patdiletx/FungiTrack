@@ -100,7 +100,7 @@ export default function MycoSimbiontePage() {
               productName: lote.productos!.nombre,
               ageInDays: getAgeInDays(lote.created_at),
               status: dynamicStatus,
-              incidents: lote.incidencias, // Use producer incidents for context
+              incidents: lote.incidencias,
               latitude: currentCoords?.latitude,
               longitude: currentCoords?.longitude,
             }
@@ -153,7 +153,6 @@ export default function MycoSimbiontePage() {
     updateSettings({ coordinates: coords });
     toast({ title: 'Ubicación guardada', description: 'La IA ahora usará el clima local para darte consejos.' });
     
-    // Call the AI with the new coords directly to avoid stale state issues.
     callMycoMind({ 
         interactionType: 'QUERY', 
         userMessage: 'He actualizado mi ubicación. ¿Cómo afecta eso a mi cultivo?' 
@@ -213,13 +212,15 @@ export default function MycoSimbiontePage() {
       
       setPhotoHistory(settings?.photo_history || []);
       setNotificationSettings(settings?.notification_settings || defaultNotificationSettings);
-      setCoordinates(initialCoords); // Set state here
+      setCoordinates(initialCoords);
       
+      // If we don't have coordinates, we can safely restore the last AI response from DB.
+      // If we DO have coordinates, we'll make a fresh call to get weather, so we don't restore here.
       const lastResponse = settings?.last_ai_response;
-      if (lastResponse) {
+      if (lastResponse && !initialCoords) {
           const { response, mood, weather: weatherData } = lastResponse;
           setMycoMood(mood);
-          if (weatherData) setWeather(weatherData);
+          if (weatherData) setWeather(weatherData); // Should be null, but for safety
           setDisplayedMessage({ id: Date.now(), text: response });
       }
 
@@ -240,24 +241,25 @@ export default function MycoSimbiontePage() {
     fetchData();
   }, [id]);
 
-  // Initial MycoMind call, runs after initial data is loaded.
+  // Initial MycoMind call, runs after initial data is loaded to get fresh data.
   useEffect(() => {
+    // Exit if: we are still loading, have already made the call, or don't have the main lote data.
     if (loading || initialCallMade.current || !lote) {
         return;
     }
     
     const lastResponse = lote.kit_settings?.[0]?.last_ai_response;
+    
+    // We need a fresh AI call if we have coordinates (to get current weather) 
+    // or if the user has no conversation history at all.
+    const needsFreshCall = !!coordinates || !lastResponse;
 
-    // Call if there is no previous AI response stored,
-    // OR if there are coordinates stored but the last AI response has NO weather data.
-    const needsInitialCall = !lastResponse || (coordinates && !lastResponse.weather);
-
-    if (needsInitialCall) {
-      initialCallMade.current = true;
-      // Pass coordinates state directly to the call to ensure it's fresh.
+    if (needsFreshCall) {
+      initialCallMade.current = true; // Mark that we've made the call for this session.
       callMycoMind({ interactionType: 'INITIALIZE' }, coordinates);
     }
-  }, [lote, loading, coordinates, callMycoMind]);
+    
+  }, [loading, lote, coordinates, callMycoMind]);
 
   // Handles scheduling and firing notifications
   useEffect(() => {
@@ -302,7 +304,7 @@ export default function MycoSimbiontePage() {
     }
   };
 
-  if (loading) {
+  if (loading && !displayedMessage) {
     return <div className="flex h-screen w-full items-center justify-center bg-[#201A30]"><Loader2 className="h-10 w-10 animate-spin text-[#A080E0]" /></div>;
   }
 
@@ -335,6 +337,9 @@ export default function MycoSimbiontePage() {
                 </p>
             </div>
         )}
+         {loading && !displayedMessage && (
+             <Loader2 className="h-10 w-10 animate-spin text-[#A080E0]/50" />
+         )}
       </div>
 
       <footer className="w-full flex flex-col items-center justify-center p-4 md:p-6 flex-shrink-0 z-10">
