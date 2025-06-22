@@ -5,6 +5,7 @@ export interface Producto {
   peso_gr: number;
   precio_clp: number;
   costo_variable_clp: number;
+  spawn_rate_porcentaje?: number | null;
 }
 
 export interface Lote {
@@ -33,6 +34,7 @@ export interface Formulacion {
   // This will be stored as JSONB in the database
   ingredientes: Ingrediente[];
   puntuacion: number;
+  humedad_objetivo_porcentaje?: number | null;
   notas?: string | null;
   id_operador: string;
 }

@@ -63,7 +63,6 @@ export function BatchForm({ productos, formulaciones, lote }: BatchFormProps) {
   const {formState: { isSubmitting }} = form;
   const {formState: { isSubmitting: isUpdating }} = updateForm;
   
-  // --- Automatic Substrate Calculation ---
   const watchedProductId = useWatch({ control: form.control, name: 'id_producto' });
   const watchedFormulationId = useWatch({ control: form.control, name: 'id_formulacion' });
   const watchedUnidades = useWatch({ control: form.control, name: 'unidades_producidas' });
@@ -75,27 +74,47 @@ export function BatchForm({ productos, formulaciones, lote }: BatchFormProps) {
     const formulacion = formulaciones.find(f => f.id === watchedFormulationId);
 
     if (producto && formulacion && watchedUnidades > 0) {
-      const totalBatchWeightGr = producto.peso_gr * watchedUnidades;
+      const totalFinalWeightGr = producto.peso_gr * watchedUnidades;
+      const spawnRate = (producto.spawn_rate_porcentaje ?? 0) / 100;
       
+      const totalBaseSubstrateWeightGr = spawnRate > 0 ? totalFinalWeightGr / (1 + spawnRate) : totalFinalWeightGr;
+      const spawnWeightGr = totalFinalWeightGr - totalBaseSubstrateWeightGr;
+      const humedadObjetivo = (formulacion.humedad_objetivo_porcentaje ?? 0) / 100;
+
       let formulaString = `Fórmula: ${formulacion.nombre} (Puntuación: ${formulacion.puntuacion}/10)\n`;
-      formulaString += `Basado en ${watchedUnidades} unidades de ${producto.nombre} (${producto.peso_gr}gr c/u).\n`;
-      formulaString += `Peso seco total del lote: ${(totalBatchWeightGr / 1000).toFixed(2)} kg.\n\n`;
-      formulaString += '--- Ingredientes Secos ---\n';
+      formulaString += `Basado en ${watchedUnidades} unidades de ${producto.nombre} (${producto.peso_gr}gr c/u).\n\n`;
+      
+      formulaString += `--- Resumen de Pesos (Seco) ---\n`;
+      formulaString += `- Sustrato Base: ${(totalBaseSubstrateWeightGr / 1000).toFixed(2)} kg\n`;
+      if (spawnWeightGr > 0) {
+        formulaString += `- Inóculo (Spawn): ${(spawnWeightGr / 1000).toFixed(2)} kg (Tasa del ${producto.spawn_rate_porcentaje}%)\n`;
+      }
+      formulaString += `- Peso Total Seco: ${(totalFinalWeightGr / 1000).toFixed(2)} kg\n\n`;
+
+      if (humedadObjetivo > 0) {
+          const aguaNecesariaGr = (totalFinalWeightGr / (1 - humedadObjetivo)) - totalFinalWeightGr;
+          const pesoTotalHumedoGr = totalFinalWeightGr + aguaNecesariaGr;
+          formulaString += `--- Hidratación (Humedad Objetivo: ${formulacion.humedad_objetivo_porcentaje}%) ---\n`;
+          formulaString += `- Agua a Añadir: ${(aguaNecesariaGr / 1000).toFixed(2)} litros\n`;
+          formulaString += `- Peso Total Húmedo Estimado: ${(pesoTotalHumedoGr / 1000).toFixed(2)} kg\n\n`;
+      }
+      
+      formulaString += '--- Composición Sustrato Base (Seco) ---\n';
 
       formulacion.ingredientes.forEach(ing => {
-        const ingredientWeightKg = (totalBatchWeightGr * (ing.porcentaje / 100)) / 1000;
+        const ingredientWeightKg = (totalBaseSubstrateWeightGr * (ing.porcentaje / 100)) / 1000;
         formulaString += `- ${ing.nombre} (${ing.porcentaje}%): ${ingredientWeightKg.toFixed(2)} kg\n`;
       });
 
+
       if (formulacion.notas) {
-        formulaString += `\n--- Notas de la Formulación ---\n${formulacion.notas}`;
+        formulaString += `\n--- Notas Adicionales ---\n${formulacion.notas}`;
       }
 
       form.setValue('notas_sustrato', formulaString);
     }
 
   }, [watchedProductId, watchedFormulationId, watchedUnidades, productos, formulaciones, form, isCreateMode]);
-  // --- End of Calculation ---
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -265,7 +284,7 @@ export function BatchForm({ productos, formulaciones, lote }: BatchFormProps) {
                 <FormItem>
                 <FormLabel>4. Revisa las Notas (autogeneradas)</FormLabel>
                 <FormControl>
-                    <Textarea rows={10} placeholder="Los cálculos de la receta aparecerán aquí automáticamente después de seleccionar producto, unidades y formulación..." {...field} />
+                    <Textarea rows={15} placeholder="Los cálculos de la receta aparecerán aquí automáticamente después de seleccionar producto, unidades y formulación..." {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>

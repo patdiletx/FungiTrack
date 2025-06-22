@@ -23,6 +23,7 @@ const formSchema = z.object({
   descripcion: z.string().optional(),
   puntuacion: z.coerce.number().int().min(0, 'Mínimo 0').max(10, 'Máximo 10'),
   ingredientes: z.array(ingredienteSchema).min(1, 'Debe haber al menos un ingrediente.'),
+  humedad_objetivo_porcentaje: z.coerce.number().min(0, 'Debe ser >= 0').max(100, 'Debe ser <= 100').default(65),
   notas: z.string().optional(),
 }).refine(data => {
     const total = data.ingredientes.reduce((acc, ing) => acc + ing.porcentaje, 0);
@@ -49,7 +50,8 @@ export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProp
       descripcion: formulacion?.descripcion || '',
       puntuacion: formulacion?.puntuacion || 5,
       ingredientes: formulacion?.ingredientes || [{ nombre: 'Viruta de madera', porcentaje: 80 }, { nombre: 'Salvado de trigo', porcentaje: 20 }],
-      notas: formulacion?.notas || 'Hidratar la mezcla hasta alcanzar un 60-65% de humedad.',
+      humedad_objetivo_porcentaje: formulacion?.humedad_objetivo_porcentaje ?? 65,
+      notas: formulacion?.notas || '',
     },
   });
 
@@ -90,50 +92,67 @@ export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="nombre"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nombre de la Formulación</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: Fórmula Estándar Ostras" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="descripcion"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descripción (Opcional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: Ideal para Gírgolas y Melena de león" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
             control={form.control}
-            name="puntuacion"
+            name="nombre"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Puntuación (0-10)</FormLabel>
+                <FormLabel>Nombre de la Formulación</FormLabel>
                 <FormControl>
-                    <Input type="number" min="0" max="10" placeholder="5" {...field} />
+                    <Input placeholder="Ej: Fórmula Estándar Ostras" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
             )}
-        />
+            />
+            <FormField
+            control={form.control}
+            name="descripcion"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Descripción (Opcional)</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ej: Ideal para Gírgolas y Melena de león" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+                control={form.control}
+                name="puntuacion"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Puntuación (0-10)</FormLabel>
+                    <FormControl>
+                        <Input type="number" min="0" max="10" placeholder="5" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="humedad_objetivo_porcentaje"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Humedad Objetivo (%)</FormLabel>
+                    <FormControl>
+                        <Input type="number" min="0" max="100" placeholder="65" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+        </div>
         
         <Separator />
 
         <div>
-            <FormLabel>Ingredientes</FormLabel>
+            <FormLabel>Ingredientes del Sustrato Base</FormLabel>
             <div className="space-y-3 mt-2">
                 {fields.map((field, index) => (
                     <div key={field.id} className="flex items-start gap-2">
@@ -187,9 +206,9 @@ export function FormulacionForm({ formulacion, onFinished }: FormulacionFormProp
             name="notas"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Notas Generales (Opcional)</FormLabel>
+                <FormLabel>Notas Adicionales (Opcional)</FormLabel>
                 <FormControl>
-                    <Textarea rows={3} placeholder="Instrucciones de hidratación, pasteurización, etc." {...field} />
+                    <Textarea rows={3} placeholder="Instrucciones especiales, tiempos de pasteurización, etc." {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>

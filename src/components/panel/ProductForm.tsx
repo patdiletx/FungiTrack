@@ -16,6 +16,7 @@ const formSchema = z.object({
   peso_gr: z.coerce.number().int().positive('El peso debe ser un número positivo.'),
   precio_clp: z.coerce.number().int().positive('El precio debe ser un número positivo.'),
   costo_variable_clp: z.coerce.number().int().positive('El costo debe ser un número positivo.'),
+  spawn_rate_porcentaje: z.coerce.number().min(0, 'Debe ser >= 0').max(100, 'Debe ser <= 100').default(5),
 });
 
 interface ProductFormProps {
@@ -31,9 +32,10 @@ export function ProductForm({ producto, onFinished }: ProductFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: producto?.nombre || '',
-      peso_gr: producto?.peso_gr || 0,
-      precio_clp: producto?.precio_clp || 0,
-      costo_variable_clp: producto?.costo_variable_clp || 0,
+      peso_gr: producto?.peso_gr || 1500,
+      precio_clp: producto?.precio_clp || 10000,
+      costo_variable_clp: producto?.costo_variable_clp || 3000,
+      spawn_rate_porcentaje: producto?.spawn_rate_porcentaje ?? 5,
     },
   });
 
@@ -80,13 +82,13 @@ export function ProductForm({ producto, onFinished }: ProductFormProps) {
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
             control={form.control}
             name="peso_gr"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Peso (gr)</FormLabel>
+                <FormLabel>Peso Final Unitario (gr)</FormLabel>
                 <FormControl>
                     <Input type="number" placeholder="1500" {...field} />
                 </FormControl>
@@ -94,6 +96,21 @@ export function ProductForm({ producto, onFinished }: ProductFormProps) {
                 </FormItem>
             )}
             />
+            <FormField
+            control={form.control}
+            name="spawn_rate_porcentaje"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Tasa de Inóculo (%)</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="5" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <FormField
             control={form.control}
             name="precio_clp"

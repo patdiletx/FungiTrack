@@ -27,6 +27,7 @@ export function FormulacionesTable({ formulaciones, onEdit }: FormulacionesTable
                     <TableRow>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Ingredientes</TableHead>
+                        <TableHead className="text-center">Humedad Obj.</TableHead>
                         <TableHead className="text-right">Puntuación</TableHead>
                         <TableHead><span className="sr-only">Acciones</span></TableHead>
                     </TableRow>
@@ -34,7 +35,7 @@ export function FormulacionesTable({ formulaciones, onEdit }: FormulacionesTable
                 <TableBody>
                     {formulaciones.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
+                            <TableCell colSpan={5} className="h-24 text-center">
                                 No se encontraron formulaciones. Crea una para empezar.
                             </TableCell>
                         </TableRow>
@@ -51,6 +52,9 @@ export function FormulacionesTable({ formulaciones, onEdit }: FormulacionesTable
                                     <Badge key={ing.nombre} variant="secondary">{ing.nombre} ({ing.porcentaje}%)</Badge>
                                 ))}
                                 </div>
+                            </TableCell>
+                             <TableCell className="text-center">
+                                {formulacion.humedad_objetivo_porcentaje ?? 'N/A'}%
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1 font-semibold">

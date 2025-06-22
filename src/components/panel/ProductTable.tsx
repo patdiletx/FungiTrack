@@ -28,13 +28,14 @@ export function ProductTable({ productos, onEdit }: ProductTableProps) {
                         <TableHead className="text-right">Peso (gr)</TableHead>
                         <TableHead className="text-right">Precio (CLP)</TableHead>
                         <TableHead className="text-right">Costo (CLP)</TableHead>
+                        <TableHead className="text-right">Tasa Inóculo</TableHead>
                         <TableHead><span className="sr-only">Acciones</span></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {productos.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={5} className="h-24 text-center">
+                            <TableCell colSpan={6} className="h-24 text-center">
                                 No se encontraron productos. Crea uno para empezar.
                             </TableCell>
                         </TableRow>
@@ -45,6 +46,7 @@ export function ProductTable({ productos, onEdit }: ProductTableProps) {
                             <TableCell className="text-right">{producto.peso_gr}</TableCell>
                             <TableCell className="text-right">${producto.precio_clp.toLocaleString('es-CL')}</TableCell>
                             <TableCell className="text-right">${producto.costo_variable_clp.toLocaleString('es-CL')}</TableCell>
+                            <TableCell className="text-right">{producto.spawn_rate_porcentaje ?? 0}%</TableCell>
                             <TableCell className="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
