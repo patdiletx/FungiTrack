@@ -71,7 +71,7 @@ export default function LoginPage() {
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente.",
       });
-      router.push('/panel');
+      router.refresh();
     }
   };
 
