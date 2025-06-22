@@ -35,9 +35,9 @@ export default function PrintPreviewPage() {
     return (
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Generando etiquetas...</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full" />
+            <Skeleton key={i} className="h-40 w-full" />
           ))}
         </div>
       </div>
@@ -63,14 +63,14 @@ export default function PrintPreviewPage() {
             </Button>
           </div>
       </div>
-      <div id="print-area" className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 break-after-page">
+      <div id="print-area" className="p-4 grid grid-cols-2 md:grid-cols-3 gap-2 break-after-page">
         {Array.from({ length: lote.unidades_producidas }).map((_, i) => (
-          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-4 w-full" style={{backgroundColor: '#F5F5DC'}}>
-            <QrCode value={publicUrl} size={200} />
-            <div className='mt-4 space-y-1'>
-                <p className="text-xl font-bold leading-tight">{lote.productos?.nombre}</p>
-                <p className="text-md leading-tight">Lote: {lote.id.substring(0, 8)}</p>
-                <p className="text-md leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
+          <div key={i} className="border border-dashed border-gray-400 flex flex-col items-center justify-center text-center text-black p-2 w-full" style={{backgroundColor: '#F5F5DC'}}>
+            <QrCode value={publicUrl} size={120} />
+            <div className='mt-2 space-y-0.5'>
+                <p className="text-lg font-bold leading-tight">{lote.productos?.nombre}</p>
+                <p className="text-sm leading-tight">Lote: {lote.id.substring(0, 8)}</p>
+                <p className="text-sm leading-tight">Fecha: {format(new Date(lote.created_at), 'dd/MM/yy', { locale: es })}</p>
             </div>
           </div>
         ))}
