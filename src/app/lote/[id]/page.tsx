@@ -51,7 +51,7 @@ export default function MycoMindPage() {
     if (displayedMessage) {
         messageTimeoutRef.current = setTimeout(() => {
             setDisplayedMessage(null);
-        }, 10000); // Message visible for 10 seconds
+        }, 15000); // Message visible for 15 seconds
     }
     return () => {
         if (messageTimeoutRef.current) {
@@ -266,7 +266,7 @@ export default function MycoMindPage() {
                 {"animate-out fade-out-50 duration-1000 fill-mode-forwards": !displayedMessage}
               )}
             >
-                <p className={cn("font-headline text-2xl md:text-4xl drop-shadow-lg", 
+                <p className={cn("font-headline text-2xl md:text-4xl drop-shadow-lg whitespace-pre-wrap", 
                     displayedMessage.sender === 'user' ? "text-primary" : "text-white"
                 )}>
                     {displayedMessage.text}
