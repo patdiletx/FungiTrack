@@ -41,17 +41,39 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 
 export const getLoteByIdAction = async (id: string): Promise<Lote | null> => {
    const supabase = createClient();
-   const { data, error } = await supabase
+
+   // Step 1: Fetch the main lote data and its related product
+   const { data: loteData, error: loteError } = await supabase
     .from('lotes')
-    .select('*, productos(*), kit_settings(*)')
+    .select('*, productos(*)')
     .eq('id', id)
     .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching lote by id:', error.message);
+
+  if (loteError && loteError.code !== 'PGRST116') { // PGRST116: row not found
+    console.error('Error fetching lote by id (action):', loteError.message);
     return null;
   }
-  return data;
+
+  if (!loteData) {
+    return null;
+  }
+
+  // Step 2: Fetch the kit_settings for that lote separately
+  const { data: settingsData, error: settingsError } = await supabase
+    .from('kit_settings')
+    .select('*')
+    .eq('lote_id', id);
+
+  if (settingsError) {
+    // Log the error but don't fail the whole request.
+    // The public kit page can still function even if settings fail to load.
+    console.error('Error fetching kit_settings by lote_id (action):', settingsError.message);
+  }
+
+  // Step 3: Manually attach the settings to the lote object
+  loteData.kit_settings = settingsData || [];
+
+  return loteData;
 }
 
 export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings'>): Promise<Lote> => {
