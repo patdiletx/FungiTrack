@@ -22,7 +22,7 @@ export function BatchAssistant({ lote }: BatchAssistantProps) {
         const result = await batchAssistant({
           productName: lote.productos?.nombre || 'Desconocido',
           status: lote.estado,
-          substrateNotes: lote.notas_sustrato || undefined,
+          substrateNotes: lote.lotes_sustrato?.notas_sustrato || undefined,
           incidents: lote.incidencias || undefined,
         });
         setAnalysis(result);

@@ -55,8 +55,6 @@ export interface Lote {
   id_producto: string;
   id_lote_sustrato?: string | null; // FK to lotes_sustrato
   unidades_producidas: number;
-  id_formulacion?: string | null;
-  notas_sustrato?: string | null;
   estado: string;
   incidencias?: string | null;
   id_operador: string;
