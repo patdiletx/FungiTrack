@@ -37,12 +37,16 @@ export default function ProductoDetailPage({ params }: Props) {
         return <ProductDetailSkeleton />;
     }
 
+    const imageUrl = product.image_url || `https://placehold.co/600x600.png`;
+    const imageHint = product.image_url ? undefined : "mushroom kit gourmet";
+
+
     return (
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
             <div className="relative aspect-square bg-card rounded-lg shadow-lg overflow-hidden">
                 <Image
-                    src={`https://placehold.co/600x600.png`}
-                    data-ai-hint="mushroom kit gourmet"
+                    src={imageUrl}
+                    data-ai-hint={imageHint}
                     alt={product.nombre}
                     fill
                     className="object-cover"

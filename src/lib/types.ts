@@ -8,6 +8,7 @@ export interface Producto {
   precio_clp: number;
   costo_variable_clp: number;
   spawn_rate_porcentaje?: number | null;
+  image_url?: string | null;
 }
 
 export interface PhotoEntry {

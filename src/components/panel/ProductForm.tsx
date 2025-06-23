@@ -13,6 +13,7 @@ import { Save, Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
+  image_url: z.string().url({ message: "Por favor, ingresa una URL de imagen válida." }).optional().or(z.literal('')),
   peso_gr: z.coerce.number().int().positive('El peso debe ser un número positivo.'),
   precio_clp: z.coerce.number().int().positive('El precio debe ser un número positivo.'),
   costo_variable_clp: z.coerce.number().int().positive('El costo debe ser un número positivo.'),
@@ -32,6 +33,7 @@ export function ProductForm({ producto, onFinished }: ProductFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: producto?.nombre || '',
+      image_url: producto?.image_url || '',
       peso_gr: producto?.peso_gr || 1500,
       precio_clp: producto?.precio_clp || 10000,
       costo_variable_clp: producto?.costo_variable_clp || 3000,
@@ -77,6 +79,19 @@ export function ProductForm({ producto, onFinished }: ProductFormProps) {
               <FormLabel>Nombre del Producto</FormLabel>
               <FormControl>
                 <Input placeholder="Ej: Kit de Inicio - Ostra Rosada" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="image_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL de la Imagen del Producto</FormLabel>
+              <FormControl>
+                <Input placeholder="https://ejemplo.com/imagen.png" {...field} value={field.value ?? ''}/>
               </FormControl>
               <FormMessage />
             </FormItem>

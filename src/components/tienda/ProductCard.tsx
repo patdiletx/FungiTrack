@@ -9,14 +9,17 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+    const imageUrl = product.image_url || `https://placehold.co/400x300.png`;
+    const imageHint = product.image_url ? undefined : "mushroom kit";
+
     return (
         <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
             <CardHeader className="p-0 border-b">
                 <Link href={`/tienda/producto/${product.id}`} className="block">
                     <div className="relative aspect-video w-full overflow-hidden">
                         <Image
-                            src={`https://placehold.co/400x300.png`}
-                            data-ai-hint="mushroom kit"
+                            src={imageUrl}
+                            data-ai-hint={imageHint}
                             alt={product.nombre}
                             fill
                             className="object-cover transition-transform duration-500 group-hover:scale-105"
