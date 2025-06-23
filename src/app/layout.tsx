@@ -4,7 +4,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'FungiGrow AI',
-  description: 'Asistente de cultivo inteligente y sistema de trazabilidad por FungiGrow.',
+  description: 'FungiGrow AI: Plataforma integral con trazabilidad por lote para productores y un asistente de cultivo inteligente para el consumidor final.',
 };
 
 export default function RootLayout({

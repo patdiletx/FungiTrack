@@ -108,7 +108,7 @@ export default function LoginPage() {
           Sistema de Trazabilidad por Lote
         </h1>
         <p className="mt-2 text-lg text-muted-foreground font-body">
-          Panel de control para FungiGrow.
+          La plataforma de gestión y trazabilidad para optimizar tu producción de hongos.
         </p>
       </div>
 

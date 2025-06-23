@@ -8,7 +8,9 @@ export default async function TiendaPage() {
         <div className="space-y-8">
             <header className="text-center space-y-2">
                 <h1 className="font-headline text-5xl md:text-7xl text-primary">Tienda FungiGrow</h1>
-                <p className="text-lg text-muted-foreground">Kits de cultivo inteligentes para tu hogar. Cosecha la magia.</p>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    Bienvenido a la tienda oficial de FungiGrow. Aquí encontrarás nuestros kits de cultivo inteligentes, cada uno con acceso a Myco-Mind, tu asistente de IA personal para una cosecha exitosa.
+                </p>
             </header>
 
             {products.length > 0 ? (
