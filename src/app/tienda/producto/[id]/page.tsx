@@ -1,7 +1,7 @@
 'use client';
 
 import { getProductByIdAction } from "@/lib/actions";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/tienda/AddToCartButton";
 import { useEffect, useState } from "react";
@@ -11,19 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus } from "lucide-react";
 
-type Props = {
-    params: { id: string };
-};
-
-export default function ProductoDetailPage({ params }: Props) {
+export default function ProductoDetailPage() {
+    const params = useParams<{ id: string }>();
     const [product, setProduct] = useState<Producto | null>(null);
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
 
     useEffect(() => {
         const fetchProduct = async () => {
+            if (!params.id) return;
             setLoading(true);
-            const p = await getProductByIdAction(params.id);
+            const p = await getProductByIdAction(params.id as string);
             if (!p) {
                 notFound();
             }
