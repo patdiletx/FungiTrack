@@ -1,6 +1,6 @@
 import { CartProvider } from "@/context/CartProvider";
 import { StoreHeader } from "@/components/tienda/StoreHeader";
-import { FungiTrackLogo } from "@/components/FungiTrackLogo";
+import { StoreFooter } from "@/components/tienda/StoreFooter";
 
 export default function StoreLayout({
   children,
@@ -9,17 +9,12 @@ export default function StoreLayout({
 }) {
   return (
     <CartProvider>
-        <div className="min-h-screen bg-background text-foreground font-body">
+        <div className="min-h-screen bg-background text-foreground font-body flex flex-col">
             <StoreHeader />
-            <main className="container mx-auto px-4 py-8">
+            <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
                 {children}
             </main>
-            <footer className="mt-16 py-8 bg-card border-t">
-                <div className="container mx-auto text-center text-muted-foreground">
-                    <FungiTrackLogo className="justify-center mb-4"/>
-                    <p>&copy; {new Date().getFullYear()} FungiGrow. Todos los derechos reservados.</p>
-                </div>
-            </footer>
+            <StoreFooter />
         </div>
     </CartProvider>
   );

@@ -3,25 +3,46 @@
 import Link from "next/link";
 import { FungiTrackLogo } from "@/components/FungiTrackLogo";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Search, Menu } from "lucide-react";
 import { useCart } from "@/context/CartProvider";
 import { CartSheet } from "./CartSheet";
 import { useState } from "react";
+import { Input } from "../ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+
+const navLinks = [
+    { href: "/tienda", label: "Tienda" },
+    { href: "/#myco-mind", label: "Myco-Mind" },
+    { href: "#", label: "Blog" },
+    { href: "#", label: "Preguntas Frecuentes" },
+];
 
 export function StoreHeader() {
     const { state } = useCart();
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0);
 
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-            <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                <Link href="/tienda">
+            <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-4">
+                <Link href="/tienda" className="flex-shrink-0">
                     <FungiTrackLogo />
                 </Link>
-                <nav>
-                    <Button variant="ghost" size="icon" onClick={() => setIsCartOpen(true)}>
+                <nav className="hidden md:flex items-center gap-6">
+                    {navLinks.map(link => (
+                        <Link key={link.href} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                            {link.label}
+                        </Link>
+                    ))}
+                </nav>
+                <div className="flex-1 flex justify-end items-center gap-2">
+                     <div className="relative hidden sm:block">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input type="search" placeholder="Buscar..." className="pl-10 w-40 md:w-64" />
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setIsCartOpen(true)} className="relative">
                         <ShoppingCart className="h-6 w-6" />
                         {itemCount > 0 && (
                             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
@@ -30,7 +51,24 @@ export function StoreHeader() {
                         )}
                         <span className="sr-only">Ver carrito</span>
                     </Button>
-                </nav>
+                     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="md:hidden">
+                                <Menu className="h-6 w-6"/>
+                                <span className="sr-only">Abrir menú</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left">
+                            <nav className="flex flex-col gap-4 mt-8">
+                                 {navLinks.map(link => (
+                                    <Link key={link.href} href={link.href} onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                                        {link.label}
+                                    </Link>
+                                ))}
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
+                </div>
             </div>
             <CartSheet isOpen={isCartOpen} onOpenChange={setIsCartOpen} />
         </header>

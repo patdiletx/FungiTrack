@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { Loader2 } from "lucide-react";
 
 const checkoutSchema = z.object({
     name: z.string().min(2, "El nombre es muy corto."),
@@ -51,13 +52,13 @@ export default function CheckoutPage() {
     return (
         <div className="space-y-8">
              <header>
-                <h1 className="font-headline text-4xl">Finalizar Compra</h1>
+                <h1 className="font-headline text-4xl font-bold">Finalizar Compra</h1>
             </header>
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Información de Envío</CardTitle>
+                            <CardTitle className="font-headline text-2xl">Información de Envío</CardTitle>
                         </CardHeader>
                         <CardContent>
                              <Form {...form}>
@@ -85,7 +86,7 @@ export default function CheckoutPage() {
                     </Card>
                 </div>
                  <div className="lg:col-span-1">
-                    <Card className="sticky top-20">
+                    <Card className="sticky top-20 shadow-md">
                         <CardHeader>
                             <CardTitle className="font-headline text-2xl">Tu Pedido</CardTitle>
                         </CardHeader>
@@ -93,7 +94,7 @@ export default function CheckoutPage() {
                             {state.items.map(item => (
                                 <div key={item.id} className="flex justify-between">
                                     <span className="text-muted-foreground">{item.nombre} x{item.quantity}</span>
-                                    <span>${(item.precio_clp * item.quantity).toLocaleString('es-CL')}</span>
+                                    <span className="font-medium">${(item.precio_clp * item.quantity).toLocaleString('es-CL')}</span>
                                 </div>
                             ))}
                             <Separator className="my-2"/>
@@ -104,6 +105,7 @@ export default function CheckoutPage() {
                         </CardContent>
                         <CardFooter>
                             <Button type="submit" form="checkout-form" size="lg" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 animate-spin"/> : null}
                                 {isSubmitting ? "Procesando..." : "Realizar Pedido"}
                             </Button>
                         </CardFooter>

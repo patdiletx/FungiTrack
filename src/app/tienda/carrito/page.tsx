@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
-import { Trash2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -38,14 +38,14 @@ export default function CarritoPage() {
     return (
         <div className="space-y-8">
             <header>
-                <h1 className="font-headline text-4xl">Tu Carrito de Compras</h1>
+                <h1 className="font-headline text-4xl font-bold">Tu Carrito de Compras</h1>
             </header>
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-4">
                     {state.items.map(item => (
                         <Card key={item.id}>
                             <CardContent className="p-4 flex gap-4 items-center">
-                                <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md">
+                                <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-secondary">
                                     <Image 
                                         src={`https://placehold.co/100x100.png`} 
                                         data-ai-hint="mushroom kit"
@@ -74,9 +74,12 @@ export default function CarritoPage() {
                             </CardContent>
                         </Card>
                     ))}
+                     <Button asChild variant="link" className="text-muted-foreground pl-0">
+                        <Link href="/tienda"><ArrowLeft className="mr-2"/> Seguir comprando</Link>
+                    </Button>
                 </div>
                 <div className="lg:col-span-1">
-                    <Card className="sticky top-20">
+                    <Card className="sticky top-20 shadow-md">
                         <CardHeader>
                             <CardTitle className="font-headline text-2xl">Resumen del Pedido</CardTitle>
                         </CardHeader>

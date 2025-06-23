@@ -4,42 +4,43 @@
 
 @layer base {
   :root {
-    --background: 250 30% 15%; /* #201A30 */
-    --foreground: 250 15% 90%;
+    --background: 40 33% 97%; /* Muted Beige */
+    --foreground: 240 10% 3.9%;
 
-    --card: 250 25% 20%;
-    --card-foreground: 250 15% 90%;
+    --card: 40 33% 97%;
+    --card-foreground: 240 10% 3.9%;
  
-    --popover: 250 25% 20%;
-    --popover-foreground: 250 15% 90%;
+    --popover: 40 33% 97%;
+    --popover-foreground: 240 10% 3.9%;
  
-    --primary: 260 57% 75%; /* #A080E0 */
-    --primary-foreground: 260 50% 15%;
+    --primary: 150 45% 45%; /* Earthy Green */
+    --primary-foreground: 150 45% 95%;
  
-    --secondary: 250 20% 30%;
-    --secondary-foreground: 250 15% 90%;
+    --secondary: 40 10% 90%;
+    --secondary-foreground: 240 10% 15%;
  
-    --muted: 250 20% 25%;
-    --muted-foreground: 250 10% 60%;
+    --muted: 40 10% 90%;
+    --muted-foreground: 240 5% 40%;
  
-    --accent: 212 82% 75%; /* #70B0F0 */
+    --accent: 212 82% 75%;
     --accent-foreground: 212 82% 15%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 250 20% 30%;
-    --input: 250 20% 30%;
-    --ring: 260 57% 75%;
+    --border: 40 10% 85%;
+    --input: 40 10% 90%;
+    --ring: 150 45% 45%;
  
     --radius: 0.5rem;
 
     --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
+    --chart-2: 150 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-
+    
+    /* Variables for dark theme applied to panel */
     --sidebar-background: 250 28% 12%;
     --sidebar-foreground: 250 15% 90%;
     --sidebar-primary: 260 57% 75%;

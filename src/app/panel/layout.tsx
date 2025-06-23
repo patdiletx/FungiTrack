@@ -18,6 +18,9 @@ export default function PanelLayout({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Apply dark theme for the panel section
+    document.documentElement.classList.add('dark');
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // The middleware handles unauthenticated users, so we primarily listen for SIGNED_OUT here
       // to handle client-side logout properly.
@@ -29,8 +32,10 @@ export default function PanelLayout({
     // Since the middleware has already validated the user, we can stop the loading state.
     setIsLoading(false);
 
+    // Cleanup function to remove the class when the component unmounts or path changes
     return () => {
       subscription?.unsubscribe();
+      document.documentElement.classList.remove('dark');
     };
   }, [router, supabase.auth]);
 
