@@ -32,7 +32,7 @@ export function StoreHeader() {
                 </Link>
                 <nav className="hidden md:flex items-center gap-6">
                     {navLinks.map(link => (
-                        <Link key={link.href} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                        <Link key={link.label} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                             {link.label}
                         </Link>
                     ))}
@@ -61,7 +61,7 @@ export function StoreHeader() {
                         <SheetContent side="left">
                             <nav className="flex flex-col gap-4 mt-8">
                                  {navLinks.map(link => (
-                                    <Link key={link.href} href={link.href} onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                                    <Link key={link.label} href={link.href} onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-foreground hover:text-primary transition-colors">
                                         {link.label}
                                     </Link>
                                 ))}
