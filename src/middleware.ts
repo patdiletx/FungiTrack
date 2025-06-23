@@ -69,7 +69,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - kit/ (public qr code pages for individual units)
      * - scan (public qr code scanner)
+     * - tienda (public store pages)
      */
-    '/((?!_next/static|_next/image|favicon.ico|kit|scan).*)',
+    '/((?!_next/static|_next/image|favicon.ico|kit|scan|tienda).*)',
   ],
 }

@@ -90,3 +90,7 @@ export interface LoteSustrato {
   id_operador: string;
   formulaciones?: Formulacion; // For joined queries
 }
+
+export interface CartItem extends Producto {
+  quantity: number;
+}

@@ -17,6 +17,58 @@ export const getProductos = async (): Promise<Producto[]> => {
   return data || [];
 };
 
+export const getProductById = async (id: string): Promise<Producto | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('productos').select('*').eq('id', id).single();
+    if (error) {
+        console.error(`Error fetching product by id ${id}:`, error.message);
+        return null;
+    }
+    return data;
+};
+
+export const getAvailableProductsForStore = async (): Promise<(Producto & { stock: number })[]> => {
+    const supabase = createClient();
+
+    // 1. Fetch all lots that are ready for sale, including product data
+    const { data: availableLotes, error: lotesError } = await supabase
+        .from('lotes')
+        .select('unidades_producidas, productos(*)')
+        .eq('estado', 'Listo para Venta');
+
+    if (lotesError) {
+        console.error('Error fetching available lotes for store:', lotesError.message);
+        return [];
+    }
+
+    if (!availableLotes || availableLotes.length === 0) {
+        return [];
+    }
+
+    // 2. Aggregate stock by product
+    const productStockMap = new Map<string, { product: Producto; stock: number }>();
+
+    for (const lote of availableLotes) {
+        if (lote.productos) {
+            const existing = productStockMap.get(lote.productos.id);
+            if (existing) {
+                existing.stock += lote.unidades_producidas;
+            } else {
+                productStockMap.set(lote.productos.id, {
+                    product: lote.productos,
+                    stock: lote.unidades_producidas,
+                });
+            }
+        }
+    }
+
+    // 3. Convert map to array
+    return Array.from(productStockMap.values()).map(item => ({
+        ...item.product,
+        stock: item.stock,
+    }));
+};
+
 // --- LOTES DE PRODUCCIÓN ---
 
 export const getLotes = async (): Promise<Lote[]> => {
@@ -24,7 +76,7 @@ export const getLotes = async (): Promise<Lote[]> => {
   // Explicitly select all columns to ensure 'dismissed_alerts' is included.
   const { data: lotes, error: lotesError } = await supabase
     .from('lotes')
-    .select('id, created_at, id_producto, unidades_producidas, estado, incidencias, id_operador, dismissed_alerts, productos(*)')
+    .select('id, created_at, id_producto, unidades_producidas, estado, incidencias, id_operador, dismissed_alerts, id_lote_sustrato, productos(*)')
     .order('created_at', { ascending: false });
 
   if (lotesError) {

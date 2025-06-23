@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FungiTrackLogo } from "@/components/FungiTrackLogo";
-import { LogIn, KeyRound, AtSign, Loader2, UserPlus, QrCode } from 'lucide-react';
+import { LogIn, KeyRound, AtSign, Loader2, UserPlus, QrCode, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthError } from '@supabase/supabase-js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -227,12 +227,21 @@ export default function LoginPage() {
 
       <Separator className="my-6 max-w-sm w-full" />
       
-      <div className="text-center">
-         <p className="text-sm text-muted-foreground mb-2">¿Tienes un kit de cultivo?</p>
-         <Button variant="outline" onClick={() => router.push('/scan')}>
-            <QrCode className="mr-2 h-4 w-4" />
-            Escanear mi Kit
-         </Button>
+      <div className="text-center space-y-4">
+         <div>
+             <p className="text-sm text-muted-foreground mb-2">¿Tienes un kit de cultivo?</p>
+             <Button variant="outline" onClick={() => router.push('/scan')}>
+                <QrCode className="mr-2 h-4 w-4" />
+                Escanear mi Kit
+             </Button>
+         </div>
+         <div>
+            <p className="text-sm text-muted-foreground mb-2">¿Quieres empezar tu aventura?</p>
+             <Button variant="default" onClick={() => router.push('/tienda')}>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Ir a la Tienda
+             </Button>
+         </div>
       </div>
 
     </main>
