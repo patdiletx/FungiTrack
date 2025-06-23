@@ -7,3 +7,4 @@ export default function TiendaRedirectPage() {
   }, []);
   return null; 
 }
+
