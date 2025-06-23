@@ -1,3 +1,5 @@
+'use client';
+
 import Image from "next/image"
 
 export function MycoMindCta() {
@@ -5,13 +7,13 @@ export function MycoMindCta() {
         <section id="myco-mind" className="overflow-hidden">
              <div className="container mx-auto px-4">
                 <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-                    <div className="relative aspect-square max-w-md mx-auto md:max-w-none">
+                    <div className="relative aspect-square max-w-md mx-auto md:max-w-none md:order-last">
                        <Image 
                          src="https://placehold.co/600x600.png" 
                          alt="Myco-Mind AI Interface" 
                          fill
                          className="object-contain"
-                         data-ai-hint="futuristic abstract"
+                         data-ai-hint="neural network"
                        />
                     </div>
                     <div className="text-center md:text-left">
