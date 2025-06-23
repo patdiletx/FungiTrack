@@ -1,6 +1,6 @@
 'use client';
 
-import { getProductById } from "@/lib/data";
+import { getProductByIdAction } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/tienda/AddToCartButton";
@@ -22,7 +22,8 @@ export default function ProductoDetailPage({ params }: Props) {
 
     useEffect(() => {
         const fetchProduct = async () => {
-            const p = await getProductById(params.id);
+            setLoading(true);
+            const p = await getProductByIdAction(params.id);
             if (!p) {
                 notFound();
             }

@@ -8,6 +8,16 @@ import { revalidatePath } from 'next/cache';
 
 // --- PRODUCTOS ---
 
+export const getProductByIdAction = async (id: string): Promise<Producto | null> => {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('productos').select('*').eq('id', id).single();
+  if (error) {
+      console.error(`Error fetching product by id ${id}:`, error.message);
+      return null;
+  }
+  return data;
+};
+
 export const createProducto = async (data: Omit<Producto, 'id' | 'created_at'>): Promise<Producto> => {
   const supabase = createClient();
   const newProductData = { ...data, id: uuidv4() };
@@ -233,7 +243,7 @@ export const updateKitSettingsAction = async (loteId: string, unitIndex: number,
         .from('kit_settings')
         .upsert(
             { lote_id: loteId, unit_index: unitIndex, ...settings },
-            { onConflict: 'lote_id,unit_index' } // Using column names
+            { onConflict: 'lote_id,unit_index' }
         )
         .select()
         .single();
