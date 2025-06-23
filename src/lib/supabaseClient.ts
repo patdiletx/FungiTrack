@@ -12,7 +12,14 @@ export type Database = {
       productos: {
         Row: Producto;
         Insert: Omit<Producto, 'created_at'>;
-        Update: Partial<Omit<Producto, 'id' | 'created_at'>>;
+        Update: {
+          nombre?: string;
+          peso_gr?: number;
+          precio_clp?: number;
+          costo_variable_clp?: number;
+          spawn_rate_porcentaje?: number | null;
+          image_url?: string | null;
+        };
       };
       formulaciones: {
         Row: Formulacion;
