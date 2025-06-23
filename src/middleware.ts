@@ -2,6 +2,14 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Define public paths that should skip the middleware's auth logic.
+  const publicPaths = ['/kit', '/scan', '/tienda'];
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
   // This `response` object is mutable and will be modified by the `set` and `remove`
   // methods on the Supabase client.
   const response = NextResponse.next({
@@ -42,8 +50,6 @@ export async function middleware(request: NextRequest) {
   // Refresh the session if it's expired.
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-
   // If the user is not signed in and is trying to access a protected route,
   // redirect them to the home page.
   if (!user && pathname.startsWith('/panel')) {
@@ -67,10 +73,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - kit/ (public qr code pages for individual units)
-     * - scan (public qr code scanner)
-     * - tienda (public store pages)
+     * Feel free to add more paths here that should bypass the middleware.
      */
-    '/((?!_next/static|_next/image|favicon.ico|kit|scan|tienda).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }
