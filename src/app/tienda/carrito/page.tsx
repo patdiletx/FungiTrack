@@ -29,7 +29,7 @@ export default function CarritoPage() {
                 <h1 className="text-3xl font-bold">Tu carrito está vacío</h1>
                 <p className="text-muted-foreground mt-2 mb-6">Parece que aún no has añadido nada. ¡Explora nuestros kits!</p>
                 <Button asChild size="lg">
-                    <Link href="/tienda">Ir a la Tienda</Link>
+                    <Link href="/">Ir a la Tienda</Link>
                 </Button>
             </div>
         )
@@ -47,7 +47,7 @@ export default function CarritoPage() {
                             <CardContent className="p-4 flex gap-4 items-center">
                                 <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-secondary">
                                     <Image 
-                                        src={`https://placehold.co/100x100.png`} 
+                                        src={item.image_url || `https://placehold.co/100x100.png`} 
                                         data-ai-hint="mushroom kit"
                                         alt={item.nombre}
                                         fill
@@ -75,7 +75,7 @@ export default function CarritoPage() {
                         </Card>
                     ))}
                      <Button asChild variant="link" className="text-muted-foreground pl-0">
-                        <Link href="/tienda"><ArrowLeft className="mr-2"/> Seguir comprando</Link>
+                        <Link href="/"><ArrowLeft className="mr-2"/> Seguir comprando</Link>
                     </Button>
                 </div>
                 <div className="lg:col-span-1">

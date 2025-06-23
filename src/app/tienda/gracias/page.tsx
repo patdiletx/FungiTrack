@@ -12,7 +12,7 @@ export default function GraciasPage() {
                 ¡Prepara tu espacio para una increíble aventura micológica!
             </p>
             <Button asChild size="lg" className="mt-8">
-                <Link href="/tienda">Volver a la Tienda</Link>
+                <Link href="/">Volver a la Tienda</Link>
             </Button>
         </div>
     )

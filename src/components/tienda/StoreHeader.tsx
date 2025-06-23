@@ -11,8 +11,8 @@ import { Input } from "../ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 
 const navLinks = [
-    { href: "/tienda", label: "Tienda" },
-    { href: "/tienda#myco-mind", label: "Myco-Mind" },
+    { href: "/", label: "Tienda" },
+    { href: "/#myco-mind", label: "Myco-Mind" },
     { href: "#", label: "Blog" },
     { href: "#", label: "Preguntas Frecuentes" },
 ];
@@ -27,7 +27,7 @@ export function StoreHeader() {
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
             <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-4">
-                <Link href="/tienda" className="flex-shrink-0">
+                <Link href="/" className="flex-shrink-0">
                     <FungiTrackLogo />
                 </Link>
                 <nav className="hidden md:flex items-center gap-6">

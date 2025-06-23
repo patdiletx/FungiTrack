@@ -51,14 +51,14 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // If the user is not signed in and is trying to access a protected route,
-  // redirect them to the home page.
+  // redirect them to the login page.
   if (!user && pathname.startsWith('/panel')) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/login', request.url))
   }
   
-  // If the user is signed in and is trying to access the home page,
+  // If the user is signed in and is trying to access the login page,
   // redirect them to the dashboard.
-  if (user && pathname === '/') {
+  if (user && pathname === '/login') {
     return NextResponse.redirect(new URL('/panel', request.url))
   }
 

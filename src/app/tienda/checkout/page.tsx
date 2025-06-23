@@ -45,7 +45,7 @@ export default function CheckoutPage() {
     };
     
     if (state.items.length === 0 && !isSubmitting) {
-        router.replace('/tienda');
+        router.replace('/');
         return null;
     }
 

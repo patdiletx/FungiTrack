@@ -36,7 +36,7 @@ export function CartSheet({ isOpen, onOpenChange }: CartSheetProps) {
                     <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                         <p className="text-muted-foreground">Tu carrito está vacío.</p>
                         <Button asChild onClick={() => onOpenChange(false)}>
-                            <Link href="/tienda">Seguir Comprando</Link>
+                            <Link href="/">Seguir Comprando</Link>
                         </Button>
                     </div>
                 ) : (
@@ -47,7 +47,7 @@ export function CartSheet({ isOpen, onOpenChange }: CartSheetProps) {
                                     <div key={item.id} className="flex gap-4">
                                         <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
                                             <Image 
-                                                src={`https://placehold.co/100x100.png`} 
+                                                src={item.image_url || `https://placehold.co/100x100.png`} 
                                                 data-ai-hint="mushroom kit"
                                                 alt={item.nombre}
                                                 fill

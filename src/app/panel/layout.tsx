@@ -25,7 +25,7 @@ export default function PanelLayout({
       // The middleware handles unauthenticated users, so we primarily listen for SIGNED_OUT here
       // to handle client-side logout properly.
       if (event === 'SIGNED_OUT') {
-        router.replace('/');
+        router.replace('/login');
       }
     });
 

@@ -28,7 +28,7 @@ export function PanelSidebar() {
     if (supabase) {
       await supabase.auth.signOut();
     }
-    router.push('/');
+    router.push('/login');
   };
 
   return (
