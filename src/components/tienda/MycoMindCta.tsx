@@ -1,7 +1,9 @@
 'use client';
 
 import Image from "next/image";
-import { BrainCircuit, CloudSun, BarChart } from "lucide-react";
+import { BrainCircuit, CloudSun, BarChart, ArrowRight } from "lucide-react";
+import { Button } from "../ui/button";
+import Link from "next/link";
 
 export function MycoMindCta() {
     return (
@@ -14,7 +16,7 @@ export function MycoMindCta() {
                          alt="Myco-Mind AI Interface" 
                          fill
                          className="object-contain"
-                         data-ai-hint="neural network biology"
+                         data-ai-hint="neural network"
                        />
                     </div>
                     <div className="text-center md:text-left">
@@ -30,7 +32,7 @@ export function MycoMindCta() {
                                 </div>
                                 <div>
                                     <h3 className="font-bold">IA Conversacional</h3>
-                                    <p className="text-muted-foreground text-sm">Responde tus preguntas, diagnostica problemas y te guía en cada paso del proceso como si hablaras con el hongo mismo.</p>
+                                    <p className="text-muted-foreground text-sm">Responde tus preguntas, diagnostica problemas y te guía en cada paso del proceso.</p>
                                 </div>
                             </li>
                             <li className="flex items-start gap-4">
@@ -39,19 +41,18 @@ export function MycoMindCta() {
                                 </div>
                                 <div>
                                     <h3 className="font-bold">Análisis Ambiental</h3>
-                                    <p className="text-muted-foreground text-sm">Utiliza tu ubicación (con tu permiso) para adaptar los consejos de cuidado a la temperatura y humedad de tu entorno local.</p>
-                                </div>
-                            </li>
-                             <li className="flex items-start gap-4">
-                                <div className="flex-shrink-0 bg-primary/10 text-primary rounded-full p-2">
-                                    <BarChart className="h-6 w-6"/>
-                                </div>
-                                <div>
-                                    <h3 className="font-bold">Seguimiento del Progreso</h3>
-                                    <p className="text-muted-foreground text-sm">Sube fotos de tu cultivo para crear un diario visual y permitir que la IA te dé feedback basado en el desarrollo real de tus hongos.</p>
+                                    <p className="text-muted-foreground text-sm">Adapta los consejos de cuidado a la temperatura y humedad de tu entorno local.</p>
                                 </div>
                             </li>
                         </ul>
+                        <div className="mt-8">
+                            <Button asChild>
+                                <Link href="/tienda/myco-mind">
+                                    Descubre todo sobre Myco-Mind
+                                    <ArrowRight className="ml-2"/>
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
