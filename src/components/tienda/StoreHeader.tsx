@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 const navLinks = [
     { href: "/tienda", label: "Tienda" },
     { href: "/tienda/myco-mind", label: "Myco-Mind" },
-    { href: "#", label: "Blog" },
+    { href: "/tienda/blog", label: "Blog" },
     { href: "#", label: "Preguntas Frecuentes" },
 ];
 
