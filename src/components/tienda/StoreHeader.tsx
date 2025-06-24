@@ -3,18 +3,17 @@
 import Link from "next/link";
 import { FungiTrackLogo } from "@/components/FungiTrackLogo";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Search, Menu } from "lucide-react";
+import { ShoppingCart, Menu } from "lucide-react";
 import { useCart } from "@/context/CartProvider";
 import { CartSheet } from "./CartSheet";
 import { useState } from "react";
-import { Input } from "../ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 
 const navLinks = [
     { href: "/tienda", label: "Tienda" },
     { href: "/tienda/myco-mind", label: "Myco-Mind" },
     { href: "/tienda/blog", label: "Blog" },
-    { href: "#", label: "Preguntas Frecuentes" },
+    { href: "/tienda/faq", label: "Preguntas Frecuentes" },
 ];
 
 export function StoreHeader() {
@@ -38,10 +37,6 @@ export function StoreHeader() {
                     ))}
                 </nav>
                 <div className="flex-1 flex justify-end items-center gap-2">
-                     <div className="relative hidden sm:block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input type="search" placeholder="Buscar..." className="pl-10 w-40 md:w-64" />
-                    </div>
                     <Button variant="ghost" size="icon" onClick={() => setIsCartOpen(true)} className="relative">
                         <ShoppingCart className="h-6 w-6" />
                         {itemCount > 0 && (
