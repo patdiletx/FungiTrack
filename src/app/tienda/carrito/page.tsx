@@ -205,7 +205,7 @@ export default function CarritoPage() {
     return (
         <div className="space-y-8">
             <header>
-                <h1 className="font-headline text-4xl font-bold">Tu Carrito de Compras</h1>
+                <h1 className="font-headline text-3xl text-center md:text-4xl font-bold lg:text-left">Tu Carrito de Compras</h1>
             </header>
              <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="grid lg:grid-cols-3 gap-8 items-start">
@@ -257,9 +257,9 @@ export default function CarritoPage() {
                         <div className="space-y-4">
                             <h2 className="font-headline text-2xl font-bold">Tus Productos</h2>
                             {state.items.map(item => (
-                                <Card key={item.id}>
-                                    <CardContent className="p-4 flex gap-4 items-center">
-                                        <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-secondary">
+                                <Card key={item.id} className="overflow-hidden">
+                                    <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+                                        <div className="relative h-28 w-28 flex-shrink-0 self-center sm:self-start overflow-hidden rounded-md bg-secondary">
                                             <Image 
                                                 src={item.image_url || `https://placehold.co/100x100.png`} 
                                                 data-ai-hint="mushroom kit"
@@ -268,23 +268,33 @@ export default function CarritoPage() {
                                                 className="object-cover"
                                             />
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold">{item.nombre}</h3>
-                                            <p className="text-sm text-muted-foreground">${item.precio_clp.toLocaleString('es-CL')}</p>
+                            
+                                        <div className="flex-1 flex flex-col justify-between gap-2">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-semibold text-lg leading-tight">{item.nombre}</h3>
+                                                    <p className="text-sm text-muted-foreground">${item.precio_clp.toLocaleString('es-CL')} c/u</p>
+                                                </div>
+                                                <Button type="button" variant="ghost" size="icon" className="-mr-2 -mt-2" onClick={() => handleRemoveItem(item.id)}>
+                                                    <Trash2 className="h-5 w-5 text-destructive"/>
+                                                </Button>
+                                            </div>
+                            
+                                            <div className="flex items-end justify-between mt-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
+                                                        <Minus className="h-4 w-4"/>
+                                                    </Button>
+                                                    <span className="w-8 text-center font-bold">{item.quantity}</span>
+                                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
+                                                        <Plus className="h-4 w-4"/>
+                                                    </Button>
+                                                </div>
+                                                <p className="font-bold text-lg">
+                                                    ${(item.precio_clp * item.quantity).toLocaleString('es-CL')}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
-                                                <Minus className="h-4 w-4"/>
-                                            </Button>
-                                            <span className="w-6 text-center font-bold">{item.quantity}</span>
-                                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
-                                                <Plus className="h-4 w-4"/>
-                                            </Button>
-                                        </div>
-                                        <p className="font-bold w-24 text-right">${(item.precio_clp * item.quantity).toLocaleString('es-CL')}</p>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}>
-                                            <Trash2 className="h-5 w-5 text-destructive"/>
-                                        </Button>
                                     </CardContent>
                                 </Card>
                             ))}
