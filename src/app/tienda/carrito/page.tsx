@@ -16,9 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createOrder } from "@/lib/actions";
-
-// --- Shipping Logic ---
+import { createPaymentOrder } from "@/lib/actions";
 
 type ShippingZone = "Centro" | "Santiago" | "Extremo";
 type ShippingSize = 'XS' | 'S' | 'M' | 'L';
@@ -39,7 +37,7 @@ const REGIONES_CHILE_ZONAS: RegionDetail[] = [
   { nombre: "Maule", zona: "Centro" },
   { nombre: "Ñuble", zona: "Centro" },
   { nombre: "Biobío", zona: "Centro" },
-  { nombre: ORIGIN_REGION_NAME, zona: ORIGIN_ZONE },
+  { nombre: "La Araucanía", zona: "Centro" },
   { nombre: "Los Ríos", zona: "Centro" },
   { nombre: "Los Lagos", zona: "Centro" },
   { nombre: "Aysén del General Carlos Ibáñez del Campo", zona: "Extremo" },
@@ -148,22 +146,46 @@ export default function CarritoPage() {
     };
 
     const onSubmit = (values: CheckoutFormData) => {
+        if (state.items.length === 0) {
+          toast({
+            title: "Carrito Vacío",
+            description: "Añade artículos antes de proceder.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         startTransition(async () => {
-            try {
-                await createOrder(values, state.items, subtotal, shippingCost, total);
-                toast({
-                    title: "¡Pedido realizado!",
-                    description: "Gracias por tu compra. Te hemos enviado un email de confirmación.",
-                });
-                dispatch({ type: 'CLEAR_CART' });
-                router.push("/tienda/gracias");
-            } catch (error) {
-                toast({
-                    title: "Error al crear el pedido",
-                    description: error instanceof Error ? error.message : "No se pudo completar el pedido. Inténtalo de nuevo.",
-                    variant: "destructive"
-                });
-            }
+          const result = await createPaymentOrder(
+            state.items,
+            total,
+            'CLP',
+            values,
+            undefined, // No discount UI yet
+            undefined  // No discount UI yet
+          );
+
+          if (result.error) {
+            toast({
+              title: "Error en el Pago",
+              description: result.error,
+              variant: "destructive",
+            });
+            router.push('/tienda/checkout/error');
+          } else if (result.redirect_url) {
+            toast({
+              title: "Redirigiendo al Pago",
+              description: "Serás redirigido para completar tu compra.",
+            });
+            window.location.href = result.redirect_url; // Use window.location for external redirect
+          } else {
+             toast({
+              title: "Error Inesperado",
+              description: "No se pudo iniciar el pago. Inténtalo de nuevo.",
+              variant: "destructive",
+            });
+            router.push('/tienda/checkout/error');
+          }
         });
     }
     
@@ -188,7 +210,6 @@ export default function CarritoPage() {
              <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="grid lg:grid-cols-3 gap-8 items-start">
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Shipping Info Card */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline text-2xl flex items-center gap-2"><Truck /> Información de Envío y Contacto</CardTitle>
@@ -233,7 +254,6 @@ export default function CarritoPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Cart Items */}
                         <div className="space-y-4">
                             <h2 className="font-headline text-2xl font-bold">Tus Productos</h2>
                             {state.items.map(item => (
@@ -274,7 +294,6 @@ export default function CarritoPage() {
                         </Button>
                     </div>
                     
-                    {/* Order Summary */}
                     <div className="lg:col-span-1">
                         <Card className="sticky top-20 shadow-md">
                             <CardHeader>

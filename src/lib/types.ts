@@ -118,3 +118,22 @@ export interface Order {
     status: 'pending' | 'paid' | 'shipped' | 'completed' | 'cancelled';
     user_id?: string | null;
 }
+
+export interface CreatePaymentResponse {
+  redirect_url?: string;
+  token?: string;
+  commerceOrder?: string;
+  error?: string;
+}
+
+export interface DjangoPaymentPayload {
+  amount: number;
+  commerceOrder: string;
+  subject: string;
+  currency: string;
+  return_url: string;
+  shippingDetails: ShippingInfo;
+  customer_email: string;
+  discount_code_applied?: string;
+  discount_amount_applied?: number;
+}

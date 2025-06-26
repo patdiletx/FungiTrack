@@ -1,13 +1,95 @@
 
 'use server';
 
-import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato, Order, ShippingInfo, CartItem } from './types';
+import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato, Order, ShippingInfo, CartItem, CreatePaymentResponse, DjangoPaymentPayload } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from './supabase/server';
 import { revalidatePath } from 'next/cache';
 
-// --- ORDERS ---
+const FLOW_API_URL = process.env.DJANGO_FLOW_API_URL || "https://django-flow-api.onrender.com";
+const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
 
+export async function createPaymentOrder(
+  cartItems: CartItem[],
+  totalAmountToPay: number, 
+  currency: string = 'CLP',
+  shippingDetails: ShippingInfo,
+  discountCodeApplied?: string,
+  discountAmountApplied?: number
+): Promise<CreatePaymentResponse> {
+  if (cartItems.length === 0) {
+    return { error: "Tu carrito está vacío." };
+  }
+
+  const commerceOrder = `FUNGIGROW-${Date.now()}`;
+  let subject = `Pedido ${commerceOrder} FungiGrow (Envío a ${shippingDetails.region})`;
+  if (discountCodeApplied) {
+    subject += ` (Desc: ${discountCodeApplied})`;
+  }
+  
+  const amount = Math.round(totalAmountToPay);
+
+  if (amount < 0) {
+     return { error: "El monto total no puede ser negativo."};
+   }
+
+  const fungifreshConfirmationUrl = `${NEXT_PUBLIC_APP_URL}/tienda/checkout/confirmation`;
+
+  const payloadToDjango: DjangoPaymentPayload = {
+    amount,
+    commerceOrder,
+    subject,
+    currency,
+    return_url: fungifreshConfirmationUrl,
+    shippingDetails: shippingDetails,
+    customer_email: shippingDetails.email,
+    discount_code_applied: discountCodeApplied,
+    discount_amount_applied: discountAmountApplied,
+  };
+
+  try {
+    const response = await fetch(`${FLOW_API_URL}/api/create-payment/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payloadToDjango),
+      cache: 'no-store',
+    });
+
+    const responseBodyText = await response.text();
+
+    if (!response.ok) {
+      let errorDetails = `Error API Django ${response.status}: ${response.statusText || 'Error desconocido'}`;
+      try {
+        const errorData = JSON.parse(responseBodyText);
+        errorDetails = errorData.detail || errorData.error || errorData.message || JSON.stringify(errorData);
+      } catch (e) {
+        errorDetails = `Error del servidor (${response.status}).`;
+      }
+      return { error: `Falló la creación del pago. ${errorDetails}` };
+    }
+
+    const responseData = JSON.parse(responseBodyText);
+
+    if (!responseData.redirect_url) {
+      return { error: "Falta URL de redirección desde el servidor de pagos." };
+    }
+
+    return {
+      redirect_url: responseData.redirect_url,
+      token: responseData.token,
+      commerceOrder: commerceOrder,
+    };
+
+  } catch (error) {
+    console.error("Error creating payment order:", error);
+    return { error: `Falló la conexión con el servidor de pagos. Por favor, inténtelo de nuevo más tarde.` };
+  }
+}
+
+
+// --- ORDERS ---
 export const createOrder = async (
   shippingInfo: ShippingInfo,
   items: CartItem[],
@@ -39,9 +121,6 @@ export const createOrder = async (
         throw new Error('Failed to create order: ' + error.message);
     }
     
-    // Potentially revalidate an admin orders page in the future
-    // revalidatePath('/panel/pedidos');
-
     return createdOrder;
 }
 
@@ -93,14 +172,13 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
 export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise<Lote | null> => {
    const supabase = createClient();
 
-   // Step 1: Fetch the main lote data and its related product
    const { data: loteData, error: loteError } = await supabase
     .from('lotes')
     .select('*, productos(*), lotes_sustrato(*, formulaciones(*))')
     .eq('id', id)
     .single();
 
-  if (loteError && loteError.code !== 'PGRST116') { // PGRST116: row not found
+  if (loteError && loteError.code !== 'PGRST116') {
     console.error('Error fetching lote by id (action):', loteError.message);
     return null;
   }
@@ -109,7 +187,6 @@ export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise
     return null;
   }
 
-  // Step 2: Fetch the kit_settings for that lote separately
   let settingsQuery = supabase
     .from('kit_settings')
     .select('*')
@@ -122,12 +199,9 @@ export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise
   const { data: settingsData, error: settingsError } = await settingsQuery;
 
   if (settingsError) {
-    // Log the error but don't fail the whole request.
-    // The public kit page can still function even if settings fail to load.
     console.error('Error fetching kit_settings by lote_id (action):', settingsError.message);
   }
 
-  // Step 3: Manually attach the settings to the lote object
   loteData.kit_settings = settingsData || [];
 
   return loteData;
@@ -277,8 +351,6 @@ export const createLoteSustrato = async (data: Omit<LoteSustrato, 'id' | 'create
 export const updateKitSettingsAction = async (loteId: string, unitIndex: number, settings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'|'unit_index'>>): Promise<KitSettings | null> => {
     const supabase = createClient();
     
-    // Use upsert to create or update settings for a kit.
-    // We specify the columns that form the unique constraint.
     const { data, error } = await supabase
         .from('kit_settings')
         .upsert(
@@ -293,9 +365,7 @@ export const updateKitSettingsAction = async (loteId: string, unitIndex: number,
         throw new Error('Failed to update kit settings: ' + error.message);
     }
     
-    // Revalidate the public kit page so changes are reflected
     revalidatePath(`/kit/${loteId}/${unitIndex}`);
-    // Revalidate the producer's lot detail page
     revalidatePath(`/panel/lote/${loteId}`);
 
     return data;
