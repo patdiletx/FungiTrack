@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Sprout, QrCode, Network } from 'lucide-react';
+import { Sprout, QrCode, Network, Bot } from 'lucide-react';
 import type { Kit } from '@/lib/types';
 
 export default function MisCultivosPage() {
@@ -40,10 +40,21 @@ export default function MisCultivosPage() {
              <div className="text-center py-16">
                 <Network className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
                 <h1 className="text-3xl font-bold">Aún no tienes cultivos conectados</h1>
-                <p className="text-muted-foreground mt-2 mb-6">Escanea el código QR de tu kit FungiGrow para empezar a monitorearlo.</p>
-                <Button asChild size="lg">
-                    <Link href="/scan">Escanear mi Primer Kit</Link>
-                </Button>
+                <p className="text-muted-foreground mt-2 mb-6">Escanea tu kit para monitorearlo o prueba nuestra demo interactiva de Myco-Mind.</p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button asChild size="lg">
+                        <Link href="/scan">
+                            <QrCode className="mr-2 h-5 w-5" />
+                            Escanear mi Kit
+                        </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="secondary">
+                        <Link href="/kit/demo-lote/1">
+                            <Bot className="mr-2 h-5 w-5" />
+                            Probar la Demo
+                        </Link>
+                    </Button>
+                </div>
             </div>
         )
     }

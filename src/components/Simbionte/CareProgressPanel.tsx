@@ -28,6 +28,7 @@ interface CareProgressPanelProps {
     currentUnitId: number;
     coordinates: Coordinates | null;
     onCoordinatesChange: (coords: Coordinates) => void;
+    isDemoMode: boolean;
 }
 
 export function CareProgressPanel({
@@ -41,7 +42,8 @@ export function CareProgressPanel({
     currentKitId,
     currentUnitId,
     coordinates,
-    onCoordinatesChange
+    onCoordinatesChange,
+    isDemoMode
 }: CareProgressPanelProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,6 +194,11 @@ export function CareProgressPanel({
                                 Mi Red de Cultivos
                             </h3>
                             <div className="space-y-2">
+                                {isDemoMode && (
+                                    <Button variant="secondary" className="w-full justify-start text-left h-auto py-2" disabled>
+                                        Kit de Demostración
+                                    </Button>
+                                )}
                                 {myKits.length > 0 && myKits.map(kit => {
                                     const isCurrent = kit.id === currentKitId && kit.unit === currentUnitId;
                                     return (
@@ -207,7 +214,7 @@ export function CareProgressPanel({
                                     )
                                 })}
                                 <Link href="/scan" passHref>
-                                     <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent hover:bg-white/10">
+                                     <Button variant="outline" size="sm" className="w-full mt-2 bg-transparent hover:bg-white/10" disabled={isDemoMode}>
                                         <Plus className="mr-2 h-4 w-4" /> Añadir otro Cultivo
                                     </Button>
                                 </Link>
@@ -220,7 +227,7 @@ export function CareProgressPanel({
                                 <Globe className="h-6 w-6 text-[#70B0F0]" />
                                 Ubicación del Cultivo
                             </h3>
-                            <p className='text-xs text-slate-400 -mt-2'>Usa tu ubicación actual o introduce coordenadas manuales.</p>
+                            <p className='text-xs text-slate-400 -mt-2'>Usa tu ubicación actual o introduce coordenadas manuales. {isDemoMode && <span className="font-bold text-yellow-400">Los cambios no se guardan.</span>}</p>
                              <div className="space-y-2">
                                 <div>
                                     <Label htmlFor="latitude" className="text-sm">Latitud</Label>
@@ -253,10 +260,11 @@ export function CareProgressPanel({
                                     id="notifications-switch"
                                     checked={notificationSettings.enabled}
                                     onCheckedChange={handleMasterToggle}
+                                    disabled={isDemoMode}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500 -mt-2">
-                                Para recibir notificaciones, esta página debe permanecer abierta en una pestaña del navegador (incluso en segundo plano).
+                            <p className={cn("text-xs text-slate-500 -mt-2", isDemoMode && "text-yellow-400/80 font-semibold")}>
+                                {isDemoMode ? "Las notificaciones están desactivadas en modo demo." : "Para recibir notificaciones, esta página debe permanecer abierta en una pestaña del navegador (incluso en segundo plano)."}
                             </p>
                            
                            <div className={cn("space-y-4 transition-opacity", !notificationSettings.enabled && "opacity-50 pointer-events-none")}>
@@ -264,10 +272,10 @@ export function CareProgressPanel({
                                 <div className="p-3 rounded-md bg-black/20">
                                     <div className="flex items-center justify-between">
                                         <Label htmlFor="watering-switch" className="font-semibold">Recordatorio de Riego</Label>
-                                        <Switch id="watering-switch" checked={notificationSettings.watering.enabled} onCheckedChange={(c) => handleSubToggle('watering', c)}/>
+                                        <Switch id="watering-switch" checked={notificationSettings.watering.enabled} onCheckedChange={(c) => handleSubToggle('watering', c)} disabled={isDemoMode}/>
                                     </div>
                                     <div className={cn("mt-2", !notificationSettings.watering.enabled && "opacity-50 pointer-events-none")}>
-                                        <Input type="time" value={notificationSettings.watering.time} onChange={(e) => handleTimeChange('watering', e.target.value)} className="bg-slate-800/50 border-slate-700"/>
+                                        <Input type="time" value={notificationSettings.watering.time} onChange={(e) => handleTimeChange('watering', e.target.value)} className="bg-slate-800/50 border-slate-700" disabled={isDemoMode}/>
                                     </div>
                                 </div>
                                 
@@ -275,18 +283,18 @@ export function CareProgressPanel({
                                 <div className="p-3 rounded-md bg-black/20">
                                      <div className="flex items-center justify-between">
                                         <Label htmlFor="aeration-switch" className="font-semibold">Recordatorios de Ventilación</Label>
-                                        <Switch id="aeration-switch" checked={notificationSettings.aeration.enabled} onCheckedChange={(c) => handleSubToggle('aeration', c)} />
+                                        <Switch id="aeration-switch" checked={notificationSettings.aeration.enabled} onCheckedChange={(c) => handleSubToggle('aeration', c)} disabled={isDemoMode}/>
                                     </div>
                                      <div className={cn("mt-2 space-y-2", !notificationSettings.aeration.enabled && "opacity-50 pointer-events-none")}>
                                         {notificationSettings.aeration.times.map((time, index) => (
                                             <div key={index} className="flex items-center gap-2">
-                                                <Input type="time" value={time} onChange={(e) => handleAerationTimeChange(index, e.target.value)} className="bg-slate-800/50 border-slate-700"/>
-                                                <Button variant="ghost" size="icon" onClick={() => removeAerationTime(index)}>
+                                                <Input type="time" value={time} onChange={(e) => handleAerationTimeChange(index, e.target.value)} className="bg-slate-800/50 border-slate-700" disabled={isDemoMode}/>
+                                                <Button variant="ghost" size="icon" onClick={() => removeAerationTime(index)} disabled={isDemoMode}>
                                                     <Trash2 className="h-4 w-4 text-red-500/80"/>
                                                 </Button>
                                             </div>
                                         ))}
-                                        <Button variant="outline" size="sm" onClick={addAerationTime} className="bg-transparent hover:bg-white/10 w-full">
+                                        <Button variant="outline" size="sm" onClick={addAerationTime} className="bg-transparent hover:bg-white/10 w-full" disabled={isDemoMode}>
                                             <Plus className="mr-2 h-4 w-4"/> Añadir Horario
                                         </Button>
                                     </div>
@@ -306,6 +314,7 @@ export function CareProgressPanel({
                                     variant="outline"
                                     className='bg-transparent hover:bg-[#70B0F0]/20'
                                     onClick={() => fileInputRef.current?.click()}
+                                    disabled={isDemoMode}
                                 >
                                     <Camera className="mr-2 h-4 w-4" />
                                     Subir Foto
@@ -321,7 +330,7 @@ export function CareProgressPanel({
                             <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {photoHistory.length === 0 && (
                                     <p className="text-slate-400 text-sm col-span-full text-center py-4">
-                                        Aún no has subido ninguna foto.
+                                        {isDemoMode ? "Sube una foto para probar la función." : "Aún no has subido ninguna foto."}
                                     </p>
                                 )}
                                 {photoHistory.slice().reverse().map((photo) => (
