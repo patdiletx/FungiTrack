@@ -1,10 +1,50 @@
 
 'use server';
 
-import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato } from './types';
+import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato, Order, ShippingInfo, CartItem } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from './supabase/server';
 import { revalidatePath } from 'next/cache';
+
+// --- ORDERS ---
+
+export const createOrder = async (
+  shippingInfo: ShippingInfo,
+  items: CartItem[],
+  subtotal: number,
+  shippingCost: number,
+  total: number
+): Promise<Order> => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const newOrder: Omit<Order, 'id' | 'created_at'> = {
+        shipping_info: shippingInfo,
+        items,
+        subtotal,
+        shipping_cost: shippingCost,
+        total,
+        status: 'pending',
+        user_id: user?.id
+    };
+
+    const { data: createdOrder, error } = await supabase
+        .from('orders')
+        .insert(newOrder)
+        .select()
+        .single();
+    
+    if (error) {
+        console.error('Error creating order:', error);
+        throw new Error('Failed to create order: ' + error.message);
+    }
+    
+    // Potentially revalidate an admin orders page in the future
+    // revalidatePath('/panel/pedidos');
+
+    return createdOrder;
+}
+
 
 // --- PRODUCTOS ---
 

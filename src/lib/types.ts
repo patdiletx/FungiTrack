@@ -1,3 +1,4 @@
+'use server';
 import type { MycoMindOutput } from '@/ai/flows/myco-mind-flow';
 
 export interface Producto {
@@ -94,4 +95,26 @@ export interface LoteSustrato {
 
 export interface CartItem extends Producto {
   quantity: number;
+}
+
+export interface ShippingInfo {
+    nombreCompleto: string;
+    email: string;
+    rut: string;
+    telefono: string;
+    direccion: string;
+    comuna: string;
+    region: string;
+}
+
+export interface Order {
+    id: string;
+    created_at: string;
+    shipping_info: ShippingInfo;
+    items: CartItem[];
+    subtotal: number;
+    shipping_cost: number;
+    total: number;
+    status: 'pending' | 'paid' | 'shipped' | 'completed' | 'cancelled';
+    user_id?: string | null;
 }
