@@ -7,7 +7,7 @@ import { ShoppingCart, Menu } from "lucide-react";
 import { useCart } from "@/context/CartProvider";
 import { CartSheet } from "./CartSheet";
 import { useState } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "../ui/sheet";
 
 const navLinks = [
     { href: "/tienda", label: "Tienda" },
@@ -55,6 +55,12 @@ export function StoreHeader() {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left">
+                            <SheetHeader className="sr-only">
+                                <SheetTitle>Menú de navegación</SheetTitle>
+                                <SheetDescription>
+                                    Enlaces principales para navegar por la tienda FungiGrow.
+                                </SheetDescription>
+                            </SheetHeader>
                             <nav className="flex flex-col gap-4 mt-8">
                                  {navLinks.map(link => (
                                     <Link key={link.label} href={link.href} onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-foreground hover:text-primary transition-colors">
