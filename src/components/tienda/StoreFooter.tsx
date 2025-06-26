@@ -35,7 +35,7 @@ export function StoreFooter() {
                             <h4 className="font-bold font-headline mb-2">Soporte</h4>
                             <ul className="space-y-2 text-sm">
                                 <li><Link href="/tienda/faq" className="text-muted-foreground hover:text-primary">Preguntas Frecuentes</Link></li>
-                                <li><Link href="#" className="text-muted-foreground hover:text-primary">Envíos y Devoluciones</Link></li>
+                                <li><Link href="/tienda/shipping" className="text-muted-foreground hover:text-primary">Envíos y Devoluciones</Link></li>
                                 <li><Link href="/tienda/privacy" className="text-muted-foreground hover:text-primary">Política de Privacidad</Link></li>
                             </ul>
                         </div>
