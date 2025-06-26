@@ -1,9 +1,10 @@
-
 'use server';
 
 import type { Lote, Producto, Formulacion, KitSettings, LoteSustrato, Order, ShippingInfo, CartItem, CreatePaymentResponse, DjangoPaymentPayload } from './types';
 import { v4 as uuidv4 } from 'uuid';
-import { createClient } from './supabase/server';
+// import { createClient } from './supabase/server'; // Usaremos createSsrClient para claridad
+import { createClient as createSsrClient } from './supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 const FLOW_API_URL = process.env.DJANGO_FLOW_API_URL || "https://django-flow-api.onrender.com";
@@ -79,7 +80,7 @@ export async function createPaymentOrder(
     return {
       redirect_url: responseData.redirect_url,
       token: responseData.token,
-      commerceOrder: commerceOrder,
+      commerceOrder: commerceOrder, // Asegúrate que esto se devuelve
     };
 
   } catch (error) {
@@ -95,40 +96,123 @@ export const createOrder = async (
   items: CartItem[],
   subtotal: number,
   shippingCost: number,
-  total: number
-): Promise<Order> => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+  total: number,
+  paymentToken?: string,
+  commerceOrder?: string
+): Promise<Order | { error: string; details?: string }> => {
+    const supabaseUserClient = createSsrClient();
+    const { data: { user } } = await supabaseUserClient.auth.getUser();
 
-    const newOrder: Omit<Order, 'id' | 'created_at'> = {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('Supabase URL or Service Role Key is not defined in environment variables for admin client.');
+        return { error: 'Server configuration error for creating order (admin).' };
+    }
+    const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+    );
+
+    const orderToInsert: Omit<Order, 'id' | 'created_at' | 'status' | 'error_log'> & { status: string } = {
         shipping_info: shippingInfo,
-        items,
+        items: items,
         subtotal,
         shipping_cost: shippingCost,
         total,
         status: 'pending',
-        user_id: user?.id
+        user_id: user?.id,
+        payment_token: paymentToken,
+        commerceOrder: commerceOrder,
     };
 
-    const { data: createdOrder, error } = await supabase
-        .from('orders')
-        .insert(newOrder)
-        .select()
-        .single();
-    
-    if (error) {
-        console.error('Error creating order:', error);
-        throw new Error('Failed to create order: ' + error.message);
+    try {
+        const { data: createdOrder, error } = await supabaseAdmin
+            .from('orders')
+            .insert(orderToInsert)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Error creating order with admin client:', error);
+            return { error: 'Failed to create order in database.', details: error.message };
+        }
+        
+        return createdOrder;
+
+    } catch (e: any) {
+        console.error('Unexpected error creating order:', e);
+        return { error: 'An unexpected error occurred.', details: e.message };
     }
-    
-    return createdOrder;
 }
 
+export const updateOrderStatusFromFlow = async (
+    commerceOrder: string, 
+    flowStatus: string, 
+    flowMessage?: string
+): Promise<{ success: boolean; order?: Order; error?: string; details?: string }> => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('Supabase URL or Service Role Key is not defined for admin client in updateOrderStatusFromFlow.');
+        return { success: false, error: 'Server configuration error for updating order status.' };
+    }
+    const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+    );
 
-// --- PRODUCTOS ---
+    let newOrderStatus: Order['status'] = 'pending';
+    if (flowStatus === 'PAID' || flowStatus === 'paid') {
+        newOrderStatus = 'paid';
+    } else if (flowStatus === 'REJECTED' || flowStatus === 'rejected') {
+        newOrderStatus = 'cancelled';
+    } else if (flowStatus === 'CANCELLED' || flowStatus === 'cancelled') {
+        newOrderStatus = 'cancelled';
+    } else if (flowStatus === 'PENDING_PAYMENT' || flowStatus === 'pending_payment' || flowStatus === 'pending') {
+        newOrderStatus = 'pending';
+    }
+
+    const updatePayload: Partial<Order> = {
+        status: newOrderStatus,
+    };
+
+    if (newOrderStatus !== 'paid' && flowMessage) {
+        updatePayload.error_log = `Flow status: ${flowStatus}. Message: ${flowMessage}`;
+    } else if (newOrderStatus !== 'paid') {
+        updatePayload.error_log = `Flow status: ${flowStatus}.`;
+    }
+
+    try {
+        const { data: updatedOrder, error } = await supabaseAdmin
+            .from('orders')
+            .update(updatePayload)
+            .eq('commerceOrder', commerceOrder) 
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating order status from Flow with admin client:', error);
+            return { success: false, error: 'Failed to update order status in database.', details: error.message };
+        }
+
+        if (!updatedOrder) {
+            console.warn(`Order not found for commerceOrder: ${commerceOrder} during status update.`);
+            return { success: false, error: 'Order not found for the given commerce order ID.' };
+        }
+        
+        return { success: true, order: updatedOrder };
+
+    } catch (e: any) {
+        console.error('Unexpected error updating order status:', e);
+        return { success: false, error: 'An unexpected error occurred while updating order status.', details: e.message };
+    }
+};
+
+// --- PRODUCTOS --- // (resto del archivo actions.ts sin cambios)
+
+// ... (resto de tus funciones de actions.ts)
 
 export const getProductByIdAction = async (id: string): Promise<Producto | null> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const { data, error } = await supabase.from('productos').select('*').eq('id', id).single();
   if (error) {
       console.error(`Error fetching product by id ${id}:`, error.message);
@@ -138,7 +222,7 @@ export const getProductByIdAction = async (id: string): Promise<Producto | null>
 };
 
 export const createProducto = async (data: Omit<Producto, 'id' | 'created_at'>): Promise<Producto> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const newProductData = { ...data, id: uuidv4() };
 
   const { data: newProduct, error } = await supabase
@@ -153,7 +237,7 @@ export const createProducto = async (data: Omit<Producto, 'id' | 'created_at'>):
 };
 
 export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'id' | 'created_at'>>): Promise<Producto | null> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const { data: updatedProduct, error } = await supabase
     .from('productos')
     .update(data)
@@ -166,11 +250,10 @@ export const updateProducto = async (id: string, data: Partial<Omit<Producto, 'i
   return updatedProduct;
 };
 
-
 // --- LOTES ---
 
 export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise<Lote | null> => {
-   const supabase = createClient();
+   const supabase = createSsrClient(); // Usar cliente SSR
 
    const { data: loteData, error: loteError } = await supabase
     .from('lotes')
@@ -208,7 +291,7 @@ export const getLoteByIdAction = async (id: string, unitIndex?: number): Promise
 }
 
 export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado' | 'id_operador' | 'productos' | 'incidencias' | 'kit_settings' | 'dismissed_alerts' | 'lotes_sustrato'>): Promise<Lote> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated to create lote.');
@@ -232,7 +315,7 @@ export const createLote = async (data: Omit<Lote, 'id' | 'created_at' | 'estado'
 };
 
 export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' | 'incidencias'>>): Promise<Lote | null> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const { data: updatedLote, error } = await supabase
     .from('lotes')
     .update(data)
@@ -249,7 +332,7 @@ export const updateLote = async (id: string, data: Partial<Pick<Lote, 'estado' |
 };
 
 export const deleteLote = async (id: string): Promise<void> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const { error } = await supabase.from('lotes').delete().eq('id', id);
   if (error) throw new Error('Failed to delete lote: ' + error.message);
   revalidatePath('/panel');
@@ -257,7 +340,7 @@ export const deleteLote = async (id: string): Promise<void> => {
 };
 
 export const dismissLoteAlertAction = async (loteId: string, reason: string): Promise<Lote | null> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   
   const { data: lote, error: fetchError } = await supabase
     .from('lotes')
@@ -293,7 +376,7 @@ export const dismissLoteAlertAction = async (loteId: string, reason: string): Pr
 // --- FORMULACIONES ---
 
 export const createFormulacion = async (data: Omit<Formulacion, 'id' | 'created_at' | 'id_operador'>): Promise<Formulacion> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated to create formulation.');
 
@@ -310,7 +393,7 @@ export const createFormulacion = async (data: Omit<Formulacion, 'id' | 'created_
 };
 
 export const updateFormulacion = async (id: string, data: Partial<Omit<Formulacion, 'id' | 'created_at' | 'id_operador'>>): Promise<Formulacion | null> => {
-  const supabase = createClient();
+  const supabase = createSsrClient(); // Usar cliente SSR
   const { data: updatedFormulacion, error } = await supabase
     .from('formulaciones')
     .update(data)
@@ -326,7 +409,7 @@ export const updateFormulacion = async (id: string, data: Partial<Omit<Formulaci
 // --- LOTES DE SUSTRATO ---
 
 export const createLoteSustrato = async (data: Omit<LoteSustrato, 'id' | 'created_at' | 'id_operador' | 'formulaciones'>): Promise<LoteSustrato> => {
-    const supabase = createClient();
+    const supabase = createSsrClient(); // Usar cliente SSR
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated to create substrate lot.');
 
@@ -349,7 +432,7 @@ export const createLoteSustrato = async (data: Omit<LoteSustrato, 'id' | 'create
 // --- KIT SETTINGS ---
 
 export const updateKitSettingsAction = async (loteId: string, unitIndex: number, settings: Partial<Omit<KitSettings, 'id'|'created_at'|'lote_id'|'unit_index'>>): Promise<KitSettings | null> => {
-    const supabase = createClient();
+    const supabase = createSsrClient(); // Usar cliente SSR
     
     const { data, error } = await supabase
         .from('kit_settings')
@@ -370,5 +453,3 @@ export const updateKitSettingsAction = async (loteId: string, unitIndex: number,
 
     return data;
 }
-
-    

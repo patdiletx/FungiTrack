@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPaymentOrder } from "@/lib/actions";
+import { createPaymentOrder, createOrder } from "@/lib/actions";
+import { ShippingInfo } from "@/lib/types";
 
 type ShippingZone = "Centro" | "Santiago" | "Extremo";
 type ShippingSize = 'XS' | 'S' | 'M' | 'L';
@@ -72,7 +73,6 @@ const checkoutSchema = z.object({
   region: z.string().min(1, "La región es requerida para calcular el envío."),
 });
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
-
 
 export default function CarritoPage() {
     const { state, dispatch } = useCart();
@@ -133,7 +133,6 @@ export default function CarritoPage() {
 
     }, [watchedRegion, totalShippableWeight]);
     
-
     const subtotal = state.items.reduce((total, item) => total + item.precio_clp * item.quantity, 0);
     const total = subtotal + shippingCost;
 
@@ -156,39 +155,70 @@ export default function CarritoPage() {
         }
 
         startTransition(async () => {
-          const result = await createPaymentOrder(
+          const paymentResult = await createPaymentOrder(
             state.items,
             total,
             'CLP',
-            values,
-            undefined, // No discount UI yet
-            undefined  // No discount UI yet
+            values, 
+            undefined, 
+            undefined 
           );
 
-          if (result.error) {
+          if (paymentResult.error || !paymentResult.token || !paymentResult.redirect_url || !paymentResult.commerceOrder) {
             toast({
-              title: "Error en el Pago",
-              description: result.error,
+              title: "Error al Iniciar Pago",
+              description: paymentResult.error || "No se pudo obtener el token de pago, la URL de redirección o el ID de orden comercial.",
               variant: "destructive",
             });
-            router.push('/tienda/checkout/error');
-          } else if (result.redirect_url) {
+            return; 
+          }
+
+          const orderInput = {
+            shippingInfo: values, 
+            items: state.items,
+            subtotal: subtotal,
+            shippingCost: shippingCost,
+            total: total,
+            paymentToken: paymentResult.token, 
+            commerceOrder: paymentResult.commerceOrder,
+          };
+          
+          const dbOrderResult = await createOrder(
+            orderInput.shippingInfo,
+            orderInput.items,
+            orderInput.subtotal,
+            orderInput.shippingCost,
+            orderInput.total,
+            orderInput.paymentToken,
+            orderInput.commerceOrder
+          );
+
+          if (dbOrderResult && 'error' in dbOrderResult) {
+             toast({
+              title: "Error al Guardar Pedido",
+              description: dbOrderResult.error + (dbOrderResult.details ? `: ${dbOrderResult.details}` : ''),
+              variant: "destructive",
+            });
+            return; 
+          }
+          
+          if (paymentResult.redirect_url) {
             toast({
               title: "Redirigiendo al Pago",
               description: "Serás redirigido para completar tu compra.",
             });
-            window.location.href = result.redirect_url; // Use window.location for external redirect
+            window.location.href = paymentResult.redirect_url;
           } else {
              toast({
               title: "Error Inesperado",
               description: "No se pudo iniciar el pago. Inténtalo de nuevo.",
               variant: "destructive",
             });
-            router.push('/tienda/checkout/error');
           }
         });
     }
     
+    // ... (resto del componente CarritoPage sin cambios)
     if (state.items.length === 0) {
         return (
              <div className="text-center py-16">

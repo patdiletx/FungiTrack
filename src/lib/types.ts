@@ -108,15 +108,18 @@ export interface ShippingInfo {
 }
 
 export interface Order {
-    id: string;
-    created_at: string;
-    shipping_info: ShippingInfo;
-    items: CartItem[];
-    subtotal: number;
-    shipping_cost: number;
-    total: number;
-    status: 'pending' | 'paid' | 'shipped' | 'completed' | 'cancelled';
-    user_id?: string | null;
+    id: string; // uuid, auto-generado por la BD
+    created_at: string; // timestamp with time zone, auto-generado
+    shipping_info: ShippingInfo; // jsonb
+    items: CartItem[]; // jsonb
+    subtotal: number; // numeric
+    shipping_cost: number; // numeric
+    total: number; // numeric
+    status: string; // text, e.g., 'pending', 'paid', 'shipped', 'cancelled'
+    user_id?: string | null; // uuid, references auth.users(id)
+    payment_token?: string | null; // text, token de Flow
+    error_log?: string | null; // text, para errores de pago u otros
+    commerceOrder?: string | null; // text, ID de orden del comercio enviado a Flow
 }
 
 export interface CreatePaymentResponse {
