@@ -24,7 +24,7 @@ type ShippingZone = "Centro" | "Santiago" | "Extremo";
 type ShippingSize = 'XS' | 'S' | 'M' | 'L';
 type RegionDetail = { nombre: string, zona: ShippingZone };
 
-const ORIGIN_REGION_NAME = "Los Ríos";
+const ORIGIN_REGION_NAME = "La Araucanía";
 const ORIGIN_ZONE: ShippingZone = "Centro";
 
 const REGIONES_CHILE_ZONAS: RegionDetail[] = [
@@ -40,6 +40,7 @@ const REGIONES_CHILE_ZONAS: RegionDetail[] = [
   { nombre: "Ñuble", zona: "Centro" },
   { nombre: "Biobío", zona: "Centro" },
   { nombre: ORIGIN_REGION_NAME, zona: ORIGIN_ZONE },
+  { nombre: "Los Ríos", zona: "Centro" },
   { nombre: "Los Lagos", zona: "Centro" },
   { nombre: "Aysén del General Carlos Ibáñez del Campo", zona: "Extremo" },
   { nombre: "Magallanes y de la Antártica Chilena", zona: "Extremo" },
