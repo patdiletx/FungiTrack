@@ -21,8 +21,8 @@ const testimonials = [
         name: "Sofía Rojas",
         location: "Concepción, Chile",
         avatar: "https://placehold.co/100x100.png",
-        rating: 4,
-        text: "Tuve un pequeño problema de contaminación y la IA lo detectó analizando una foto que subí. ¡Salvó mi cultivo! Un producto genial y un soporte tecnológico impresionante."
+        rating: 5,
+        text: "Tenía dudas sobre cuándo era el momento justo para cosechar. Subí una foto a Myco-Mind y me dio la recomendación perfecta al instante. ¡Un soporte tecnológico impresionante!"
     }
 ]
 
