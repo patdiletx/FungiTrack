@@ -64,8 +64,7 @@ export default function MycoMindPage() {
                  <div className="container mx-auto px-4">
                     <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border">
                          <Image
-                            src="https://placehold.co/1200x675.png"
-                            data-ai-hint="futuristic biological interface"
+                            src="https://fungigrow-media-storage.s3.us-east-2.amazonaws.com/media/mycoai2.PNG"
                             alt="Interfaz de Myco-Mind AI"
                             fill
                             className="object-cover"
