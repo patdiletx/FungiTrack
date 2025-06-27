@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from "@/context/CartProvider";
@@ -155,70 +156,56 @@ export default function CarritoPage() {
         }
 
         startTransition(async () => {
+          // Step 1: Initiate payment with external service to get token and redirect URL
           const paymentResult = await createPaymentOrder(
-            state.items,
-            total,
-            'CLP',
-            values, 
-            undefined, 
-            undefined 
+            state.items, total, 'CLP', values, undefined, undefined
           );
 
           if (paymentResult.error || !paymentResult.token || !paymentResult.redirect_url || !paymentResult.commerceOrder) {
+            console.error("Payment initiation failed:", paymentResult.error);
             toast({
               title: "Error al Iniciar Pago",
-              description: paymentResult.error || "No se pudo obtener el token de pago, la URL de redirección o el ID de orden comercial.",
+              description: paymentResult.error || "No se pudo comunicar con el servicio de pagos. Inténtalo de nuevo.",
               variant: "destructive",
             });
             return; 
           }
 
-          const orderInput = {
-            shippingInfo: values, 
-            items: state.items,
-            subtotal: subtotal,
-            shippingCost: shippingCost,
-            total: total,
-            paymentToken: paymentResult.token, 
-            commerceOrder: paymentResult.commerceOrder,
-          };
-          
+          // Step 2: Create the pre-sale record in our database with 'pending' status
           const dbOrderResult = await createOrder(
-            orderInput.shippingInfo,
-            orderInput.items,
-            orderInput.subtotal,
-            orderInput.shippingCost,
-            orderInput.total,
-            orderInput.paymentToken,
-            orderInput.commerceOrder
+            values, // shippingInfo
+            state.items,
+            subtotal,
+            shippingCost,
+            total,
+            paymentResult.token,
+            paymentResult.commerceOrder
           );
 
           if (dbOrderResult && 'error' in dbOrderResult) {
-             toast({
-              title: "Error al Guardar Pedido",
-              description: dbOrderResult.error + (dbOrderResult.details ? `: ${dbOrderResult.details}` : ''),
-              variant: "destructive",
-            });
+            console.error("Failed to create pre-sale order:", dbOrderResult.error, dbOrderResult.details);
+            // This is a critical failure. The user can't pay for an order that doesn't exist in our system.
+            // Redirect to a dedicated error page.
+            router.push('/tienda/checkout/error');
             return; 
           }
           
+          // Step 3: If pre-sale order is saved successfully, redirect user to payment gateway.
           if (paymentResult.redirect_url) {
-            toast({
-              title: "Redirigiendo al Pago",
-              description: "Serás redirigido para completar tu compra.",
-            });
+            // The user will be redirected to Flow. After payment, Flow will redirect them
+            // to the confirmation page we provided.
             window.location.href = paymentResult.redirect_url;
           } else {
+             // This case should theoretically not be reached due to the check at the top, but as a fallback:
              toast({
               title: "Error Inesperado",
-              description: "No se pudo iniciar el pago. Inténtalo de nuevo.",
+              description: "No se pudo obtener la URL de pago. Inténtalo de nuevo.",
               variant: "destructive",
             });
           }
         });
     }
     
-    // ... (resto del componente CarritoPage sin cambios)
     if (state.items.length === 0) {
         return (
              <div className="text-center py-16">
@@ -356,7 +343,7 @@ export default function CarritoPage() {
                             </CardContent>
                             <CardFooter>
                                 <Button type="submit" size="lg" className="w-full" disabled={isPending}>
-                                    {isPending ? <Loader2 className="mr-2 animate-spin"/> : <CreditCard />}
+                                    {isPending ? <Loader2 className="mr-2 animate-spin"/> : <CreditCard className="mr-2 h-4 w-4" />}
                                     {isPending ? "Procesando..." : "Realizar Pedido"}
                                 </Button>
                             </CardFooter>
