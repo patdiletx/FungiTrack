@@ -7,10 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle, AlertTriangle, ShoppingBag, Home } from 'lucide-react';
 import { useCart } from '@/context/CartProvider';
-import { updateOrderStatusFromFlow } from '@/lib/actions';
 
 interface ConfirmationStatusDetails {
-  status: 'success' | 'failure' | 'pending' | 'loading' | 'unknown' | 'error';
+  status: 'success' | 'failure' | 'pending' | 'loading' | 'error' | 'unknown';
   message: string;
   title: string;
 }
@@ -26,93 +25,61 @@ function ConfirmationContent() {
 
   useEffect(() => {
     const flowStatus = searchParams.get('status');
-    const flowMessage = searchParams.get('message') || searchParams.get('reason');
-    const flowOrderId = searchParams.get('orderId'); // Este es el commerceOrder
+    const flowMessage = searchParams.get('message') || '';
+    const flowOrderId = searchParams.get('orderId');
 
+    let newDetails: ConfirmationStatusDetails;
     let pageTitle = "Estado del Pedido - FungiGrow";
     
-    const updatePageDetails = (newDetails: ConfirmationStatusDetails, title: string) => {
-        setDetails(newDetails);
+    const updatePageDetails = (details: ConfirmationStatusDetails, title: string) => {
+        setDetails(details);
         if (typeof document !== 'undefined') {
             document.title = title;
         }
     };
 
-    if (!flowOrderId) { 
-        updatePageDetails({
+    if (!flowOrderId) {
+        newDetails = {
             status: 'error',
             title: 'Error de Confirmación',
             message: 'No se encontró un identificador de orden en la URL. Por favor, contacta a soporte si el problema persiste.',
-        }, "Error de Confirmación - FungiGrow");
-        return;
-    }
-
-    if (!flowStatus) {
-      updatePageDetails({
-        status: 'error',
-        title: 'Información Incompleta',
-        message: 'Falta información del estado del pago. No se puede actualizar el pedido.',
-      }, "Error de Confirmación - FungiGrow");
-      return;
-    }
-
-    updateOrderStatusFromFlow(flowOrderId, flowStatus, flowMessage || undefined)
-      .then(result => {
-        let newDetails: ConfirmationStatusDetails;
-        if (result.success && result.order) {
-          if (result.order.status === 'paid') {
-            dispatch({ type: 'CLEAR_CART' });
-            newDetails = {
-              status: 'success',
-              title: '¡Pago Exitoso!',
-              message: flowMessage || '¡Gracias por tu pedido! Tu pago ha sido confirmado y tu orden actualizada.',
-            };
-            pageTitle = "Pago Exitoso - FungiGrow";
-          } else if (result.order.status === 'cancelled') {
-            newDetails = {
-              status: 'failure',
-              title: 'Pago Fallido o Cancelado',
-              message: flowMessage || `El pago fue ${flowStatus}. Tu orden ha sido marcada como cancelada.`,
-            };
-            pageTitle = "Pago Fallido - FungiGrow";
-          } else if (result.order.status === 'pending') {
-             newDetails = {
-              status: 'pending',
-              title: 'Pago Pendiente',
-              message: flowMessage || 'Tu pago está pendiente. Actualizaremos tu orden cuando se complete.',
-            };
-            pageTitle = "Pago Pendiente - FungiGrow";
-          }
-           else { 
-            newDetails = {
-              status: 'unknown',
-              title: 'Estado del Pedido Actualizado',
-              message: flowMessage || `El estado de tu pedido es ahora: ${result.order.status}.`,
-            };
-            pageTitle = "Estado del Pedido - FungiGrow";
-          }
-        } else { 
-          newDetails = {
+        };
+        pageTitle = "Error de Confirmación - FungiGrow";
+    } else if (flowStatus === 'success' || flowStatus === 'paid' || flowStatus === 'PAID') {
+        dispatch({ type: 'CLEAR_CART' });
+        newDetails = {
+            status: 'success',
+            title: '¡Pago Exitoso!',
+            message: flowMessage || '¡Gracias por tu pedido! Tu pago ha sido confirmado. Recibirás un correo con los detalles.',
+        };
+        pageTitle = "Pago Exitoso - FungiGrow";
+    } else if (flowStatus === 'failure' || flowStatus === 'rejected' || flowStatus === 'cancelled' || flowStatus === 'REJECTED' || flowStatus === 'CANCELLED') {
+        newDetails = {
+            status: 'failure',
+            title: 'Pago Fallido o Cancelado',
+            message: flowMessage || 'El pago no pudo ser procesado o fue cancelado. Puedes intentar nuevamente.',
+        };
+        pageTitle = "Pago Fallido - FungiGrow";
+    } else if (flowStatus === 'pending' || flowStatus === 'PENDING_PAYMENT' || flowStatus === 'pending_payment') {
+        newDetails = {
+            status: 'pending',
+            title: 'Pago Pendiente',
+            message: flowMessage || 'Tu pago está pendiente. Te notificaremos cuando se complete.',
+        };
+        pageTitle = "Pago Pendiente - FungiGrow";
+    } else {
+        newDetails = {
             status: 'error',
-            title: 'Error al Actualizar Pedido',
-            message: result.error || 'No pudimos actualizar tu pedido en nuestro sistema. Por favor, contacta a soporte.',
-          };
-          pageTitle = "Error de Pedido - FungiGrow";
-        }
-        updatePageDetails(newDetails, pageTitle);
-      })
-      .catch(error => {
-        console.error("Error calling updateOrderStatusFromFlow:", error);
-        updatePageDetails({
-          status: 'error',
-          title: 'Error Crítico',
-          message: 'Ocurrió un error inesperado al procesar la confirmación de tu pedido. Por favor, contacta a soporte.',
-        }, "Error Crítico - FungiGrow");
-      });
+            title: 'Estado Desconocido',
+            message: flowMessage || `El estado de tu pedido es desconocido. Por favor, contacta a soporte con tu número de orden: ${flowOrderId}`,
+        };
+        pageTitle = "Estado Desconocido - FungiGrow";
+    }
+
+    updatePageDetails(newDetails, pageTitle);
 
   }, [searchParams, dispatch]);
 
-  // ... (resto del componente ConfirmationContent y ConfirmationPage sin cambios)
   if (details.status === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
