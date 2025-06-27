@@ -183,7 +183,7 @@ export default function CarritoPage() {
           );
 
           if (dbOrderResult && 'error' in dbOrderResult) {
-            console.error("Failed to create pre-sale order:", dbOrderResult.error, dbOrderResult.details);
+            console.error("Failed to create pre-sale order:", dbOrderResult.error);
             // This is a critical failure. The user can't pay for an order that doesn't exist in our system.
             // Redirect to a dedicated error page.
             router.push('/tienda/checkout/error');
