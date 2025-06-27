@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPaymentOrder, createOrder } from "@/lib/actions";
+import { createPaymentOrder, sendPresaleToWebhook } from "@/lib/actions";
 import { ShippingInfo } from "@/lib/types";
 
 type ShippingZone = "Centro" | "Santiago" | "Extremo";
@@ -171,8 +171,8 @@ export default function CarritoPage() {
             return; 
           }
 
-          // Step 2: Create the pre-sale record in our database with 'pending' status
-          const dbOrderResult = await createOrder(
+          // Step 2: Send the pre-sale data to the webhook
+          const webhookResult = await sendPresaleToWebhook(
             values, // shippingInfo
             state.items,
             subtotal,
@@ -182,15 +182,18 @@ export default function CarritoPage() {
             paymentResult.commerceOrder
           );
 
-          if (dbOrderResult && 'error' in dbOrderResult) {
-            console.error("Failed to create pre-sale order:", dbOrderResult.error);
-            // This is a critical failure. The user can't pay for an order that doesn't exist in our system.
-            // Redirect to a dedicated error page.
+          if (!webhookResult.success) {
+            console.error("Failed to send pre-sale data to webhook:", webhookResult.error);
+            toast({
+                title: "Error al Registrar Pedido",
+                description: "No se pudo registrar la información de preventa. Por favor, inténtalo de nuevo.",
+                variant: "destructive",
+            });
             router.push('/tienda/checkout/error');
-            return; 
+            return;
           }
           
-          // Step 3: If pre-sale order is saved successfully, redirect user to payment gateway.
+          // Step 3: If pre-sale is registered successfully, redirect user to payment gateway.
           if (paymentResult.redirect_url) {
             // The user will be redirected to Flow. After payment, Flow will redirect them
             // to the confirmation page we provided.

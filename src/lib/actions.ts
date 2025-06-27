@@ -9,6 +9,50 @@ import { revalidatePath } from 'next/cache';
 
 const FLOW_API_URL = process.env.DJANGO_FLOW_API_URL || "https://django-flow-api.onrender.com";
 const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
+const N8N_PRESALE_WEBHOOK_URL = 'https://n8n-n8n.qdh5jo.easypanel.host/webhook/presale';
+
+export async function sendPresaleToWebhook(
+  shippingInfo: ShippingInfo,
+  items: CartItem[],
+  subtotal: number,
+  shippingCost: number,
+  total: number,
+  paymentToken?: string,
+  commerceOrder?: string
+): Promise<{ success: boolean; error?: string }> {
+  const payload = {
+    shipping_info: shippingInfo,
+    items,
+    subtotal,
+    shipping_cost: shippingCost,
+    total,
+    payment_token: paymentToken,
+    commerceOrder,
+  };
+
+  try {
+    const response = await fetch(N8N_PRESALE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Webhook response error:', errorText);
+      return { success: false, error: `Webhook returned an error: ${response.status} ${response.statusText}` };
+    }
+
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('Error sending data to webhook:', error);
+    return { success: false, error: `Failed to send data to webhook: ${error.message}` };
+  }
+}
 
 export async function createPaymentOrder(
   cartItems: CartItem[],
@@ -100,27 +144,34 @@ export const createOrder = async (
   paymentToken?: string,
   commerceOrder?: string
 ): Promise<Order | { error: string; details?: string }> => {
-    // We must use the admin client to insert into the orders table as anonymous users
-    // do not have insert permissions. This is a trusted server-side action.
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.error('Supabase URL or Service Role Key is not defined for admin client.');
-        return { error: 'Server configuration error preventing order creation.' };
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        const missingVars = [];
+        if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
+        if (!supabaseServiceKey) missingVars.push('SUPABASE_SERVICE_ROLE_KEY');
+
+        const errorMessage = `Server configuration error. The following required environment variables are missing: ${missingVars.join(', ')}. Please check your hosting provider settings.`;
+        
+        console.error(errorMessage);
+        return { error: "Server configuration error preventing order creation.", details: errorMessage };
     }
+
     const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        supabaseUrl,
+        supabaseServiceKey,
         { auth: { persistSession: false } }
     );
 
-    // This is a "pre-sale" record. The status is 'pending' until the payment gateway confirms.
     const orderToInsert = {
         shipping_info: shippingInfo,
         items: items,
         subtotal: subtotal,
         shipping_cost: shippingCost,
         total: total,
-        status: 'pending', // Initial status for a pre-sale order
-        user_id: null, // Public users are not logged in, so user_id is null
+        status: 'pending',
+        user_id: null,
         payment_token: paymentToken,
         commerceOrder: commerceOrder,
     };
@@ -150,13 +201,21 @@ export const updateOrderStatusFromFlow = async (
     flowStatus: string, 
     flowMessage?: string
 ): Promise<{ success: boolean; order?: Order; error?: string; details?: string }> => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.error('Supabase URL or Service Role Key is not defined for admin client in updateOrderStatusFromFlow.');
-        return { success: false, error: 'Server configuration error for updating order status.' };
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        const missingVars = [];
+        if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
+        if (!supabaseServiceKey) missingVars.push('SUPABASE_SERVICE_ROLE_KEY');
+        const errorMessage = `Server configuration error in updateOrderStatusFromFlow. Missing vars: ${missingVars.join(', ')}.`;
+        console.error(errorMessage);
+        return { success: false, error: "Server configuration error.", details: errorMessage };
     }
+    
     const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        supabaseUrl,
+        supabaseServiceKey,
         { auth: { persistSession: false } }
     );
 
